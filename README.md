@@ -128,6 +128,8 @@ local FM = Tabs.Status:AddParagraph({ Title = "Full Moon", Content = "" })
 local LegendarySword = Tabs.Status:AddParagraph({ Title = "Legendary Sword", Content = "Status: " })
 local Bone = Tabs.Status:AddParagraph({ Title = "Bones", Content = "" })
 local FrutasSpawn = Tabs.Status:AddParagraph({ Title = "Frutas no Mapa", Content = "carregando..." })
+local CheckFod = Tabs.Status:AddParagraph({ Title = "First Of Darkness", Content = "Status: " })
+local CheckChalice = Tabs.Status:AddParagraph({ Title = "God Chalice", Content = "Status: " })
 
 task.spawn(function()
     while task.wait(1) do
@@ -252,13 +254,14 @@ end)
         end)
     end
 end)
+
 -- ==============================================================
 -- DETECTOR DE FRUTAS DROPADAS - HIGH PERFORMANCE (COELHO HUB)
 -- ==============================================================
 
 -- Cache de Serviços para otimização de memória
 local Workspace = game:GetService("Workspace")
-local task = task -- Garante o uso das threads nativas do Luau
+local task = task 
 
 -- Lista de referência (Mantida idêntica à sua)
 local FRUTAS_LISTA = {
@@ -272,15 +275,15 @@ local FRUTAS_LISTA = {
 -- Função Otimizada de Varredura
 local function AtualizarListaFrutas()
     local frutasNoMapa = {}
-    local nomesAdicionados = {} -- Tabela de hash para busca instantânea (evita table.find)
+    local nomesAdicionados = {} -- Tabela de hash para busca instantânea
     
-    -- Varre apenas a raiz do Workspace (onde as frutas dropadas ficam), evitando GetDescendants
+    -- Varre apenas a raiz do Workspace para máxima performance
     local itens = Workspace:GetChildren()
     
     for i = 1, #itens do
         local obj = itens[i]
         
-        -- Frutas dropadas legítimas são Models e SEMPRE possuem um "Handle"
+        -- Garante que só vai checar as frutas fisicamente dropadas no chão (que têm Handle)
         if obj:IsA("Model") and obj:FindFirstChild("Handle") then
             local nomeObjeto = obj.Name
             
@@ -289,12 +292,11 @@ local function AtualizarListaFrutas()
                 local nomeFruta = FRUTAS_LISTA[j]
                 
                 if nomeObjeto == nomeFruta .. " Fruit" or nomeObjeto == nomeFruta then
-                    -- Se ainda não adicionou essa espécie na lista, adiciona
                     if not nomesAdicionados[nomeFruta] then
                         nomesAdicionados[nomeFruta] = true
                         table.insert(frutasNoMapa, nomeFruta)
                     end
-                    break -- Encontrou a fruta correspondente, pula para o próximo objeto
+                    break 
                 end
             end
         end
@@ -308,13 +310,48 @@ local function AtualizarListaFrutas()
     end
 end
 
--- Loop de Atualização Automática (A cada 10 segundos)
+-- Loop de Atualização Automática Rápida (A cada 1.2 segundos)
 task.spawn(function()
     while true do
         pcall(AtualizarListaFrutas)
-        task.wait(10) -- Espera exatos 10 segundos de forma leve
+        task.wait(1.2) -- Ajustado para atualizar quase em tempo real
     end
 end)
+
+-- Loop Separado: First Of Darkness
+task.spawn(function()
+	while true do
+		task.wait(1)
+		pcall(function()
+			local found = false
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v.Name:lower():find("first") and v.Name:lower():find("dark") then
+					found = true
+					break
+				end
+			end
+			CheckFod:SetDesc(found and "Status: ✅" or "Status: ❌")
+		end)
+	end
+end)
+
+-- Loop Separado: God Chalice
+task.spawn(function()
+	while true do
+		task.wait(1)
+		pcall(function()
+			local found = false
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v.Name:lower():find("god") and v.Name:lower():find("chal") then
+					found = true
+					break
+				end
+			end
+			CheckChalice:SetDesc(found and "Status: ✅" or "Status: ❌")
+		end)
+	end
+end)
+
 -- ========================================================
 -- ABA CRÉDITOS
 -- (A Fluent não suporta AddImageLabel nativamente,
@@ -812,42 +849,6 @@ Tabs.Teleport:AddButton({
     end
 })
 
-Tabs.ShopTab:AddToggle("Auto Dragon Talon",{
-    Title = "Auto Dragon Talon",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoDragonTalon = Value
-        if Value then
-            task.spawn(function()
-                local replicated = game:GetService("ReplicatedStorage")
-                local plr = game.Players.LocalPlayer
-                while _G.AutoDragonTalon do
-                    pcall(function()
-                        if plr:FindFirstChild("WeaponAssetCache") then
-                            if not GetBP("Dragon Claw") then
-                                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "2")
-                            end
-
-                            local dragonClaw = GetBP("Dragon Claw")
-                            if dragonClaw and dragonClaw.Level.Value >= 400 then
-                                replicated.Remotes.CommF_:InvokeServer("Bones", "Buy", 1, 1)
-                                replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
-                            elseif dragonClaw and dragonClaw.Level.Value < 400 then
-                                repeat
-                                    _G.AutoFarm_Bone = true
-                                    task.wait()
-                                until not _G.AutoDragonTalon or GetBP("Dragon Talon")
-                                _G.AutoFarm_Bone = false
-                            end
-                        end
-                    end)
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end
-})
-
 Tabs.Config:AddToggle("Anti AFK",{
     Title = "Anti AFK",
     Default = true,
@@ -915,193 +916,271 @@ Tabs.ShopTab:AddParagraph({
     Content = "Compre estilos de luta abaixo"
 })
 
-Tabs.ShopTab:AddButton({
-    Title = "Black Leg",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg") end)
+-- ==============================================================
+-- AUTO BUY ESTILOS DE LUTA - POSIÇÕES FIXAS OFICIAIS (COELHO HUB)
+-- ==============================================================
+
+-- Cache de Serviços e Configurações Globais
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local plr = Players.LocalPlayer
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Shop = _G.Settings.Shop or {}
+
+-- BANCO DE DADOS DE CFRAMES (Atualizado com a sua coordenada exata do Shafi)
+local NPC_POSITIONS = {
+    ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939),
+    ["Electro"]        = CFrame.new(-4994.93018, 314.557556, -3198.11987),
+    ["WaterKungFu"]    = CFrame.new(-5019.89941, 371.354584, -3190.61987),
+    ["DragonBreath"]   = CFrame.new(-4980.09473, 371.354584, -3206.14917), -- Sabi / Daermon
+    ["Superhuman"]     = CFrame.new(-5005.6626,  374.42334,  -3195.02759),
+    ["DeathStep"]      = CFrame.new(-5003.19482, 318.014496, -3222.10449),
+    ["SharkmanKarate"] = CFrame.new(-4968.7417,  317.886932, -3219.92822),
+    ["ElectricClaw"]   = CFrame.new(-10375.2676, 334.764008, -10132.6826),
+    ["DragonTalon"]    = CFrame.new(5657.89844,  1214.87695, 863.23822),
+    ["Godhuman"]       = CFrame.new(-13771.4043, 337.733002, -9876.94336),
+    ["SanguineArt"]    = CFrame.new(-16511.1152, 26.8119965, -189.201233) -- Coordenada real do Shafi aplicada!
+}
+
+-- Função de movimentação por VOO CONTROLADO COM BARREIRA DE ALTURA (Y)
+local function VoarParaPosicao(settingKey)
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local cframeAlvo = NPC_POSITIONS[settingKey]
+
+    if hrp and cframeAlvo then
+        local velocidade = _G.VelocidadeFarmBone or 250
+        local LIMITE_Y = 20 -- Defina aqui a altura mínima que o player pode alcançar (Impede Y negativo)
+        
+        if shouldTween ~= nil then shouldTween = true end
+        
+        -- Garante que a gravidade ou forças físicas não puxem o boneco para baixo
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        -- CÁLCULO DO VOO SUAVE:
+        local distancia = (hrp.Position - cframeAlvo.Position).Magnitude
+        local deltaTime = task.wait() 
+        local passo = (velocidade * deltaTime) / distancia
+        
+        if passo >= 1 then
+            -- Se o alvo final tiver Y menor que o limite, barra ele no limite seguro
+            local posFinal = cframeAlvo.Position
+            if posFinal.Y < LIMITE_Y then
+                posFinal = Vector3.new(posFinal.X, LIMITE_Y, posFinal.Z)
+            end
+            hrp.CFrame = CFrame.new(posFinal) * (cframeAlvo - cframeAlvo.Position)
+            return true
+        else
+            -- Calcula o próximo CFrame do movimento suave
+            local proximoCFrame = hrp.CFrame:Lerp(cframeAlvo, passo)
+            local novaPosicao = proximoCFrame.Position
+            
+            -- BARREIRA INVISÍVEL: Se a próxima posição for menor que o limite, força o Y para cima
+            if novaPosicao.Y < LIMITE_Y then
+                novaPosicao = Vector3.new(novaPosicao.X, LIMITE_Y, novaPosicao.Z)
+                -- Reconstrói o CFrame mantendo a rotação original, mas aplicando a trava no Y
+                proximoCFrame = CFrame.new(novaPosicao) * (proximoCFrame - proximoCFrame.Position)
+            end
+            
+            hrp.CFrame = proximoCFrame
+        end
+        
+        if distancia < 15 then
+            return true
+        end
     end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Fishman Karate",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Electro",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyElectro") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Dragon Breath",
-    Callback = function()
-        pcall(function()
-            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "1")
-            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+    return false
+end
+
+-- Função centralizada que roda o loop de voo e compra sem travar
+local function IniciarLoopEstilo(settingKey, buyCallback)
+    task.spawn(function()
+        -- Ativa o Noclip em segundo plano enquanto o toggle estiver ativo
+        local noclipConnection
+        noclipConnection = RunService.Stepped:Connect(function()
+            if not _G.Settings.Shop[settingKey] then
+                if noclipConnection then noclipConnection:Disconnect() end
+                return
+            end
+            if plr.Character then
+                for _, part in ipairs(plr.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then 
+                        part.CanCollide = false 
+                    end
+                end
+                
+                -- CAMADA EXTRA DE SEGURANÇA NO NOCLIP:
+                -- Se por algum motivo externo (ataque, bug) o boneco cair abaixo do limite, joga ele pra cima na hora
+                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and hrp.Position.Y < 20 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 20, hrp.Position.Z) * (hrp.CFrame - hrp.CFrame.Position)
+                end
+            end
         end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "SuperHuman",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuySuperhuman") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Death Step",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyDeathStep") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Sharkman Karate",
-    Callback = function()
-        pcall(function()
-            replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate", true)
-            replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
-        end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Electric Claw",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Dragon Talon",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "God Human",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyGodhuman") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Sanguine Art",
-    Callback = function()
-        pcall(function()
-            replicated.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
-            replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
-        end)
+
+        -- Loop principal focado em voar
+        while _G.Settings.Shop[settingKey] do
+            RunService.Heartbeat:Wait()
+            
+            local chegouNoNpc = VoarParaPosicao(settingKey)
+            
+            if chegouNoNpc then
+                task.spawn(function()
+                    pcall(buyCallback)
+                end)
+                task.wait(0.5)
+            end
+        end
+        
+        if shouldTween ~= nil then shouldTween = false end
+    end)
+end
+
+Tabs.ShopTab:AddToggle("ToggleBlackLeg", {
+    Title = "Auto Dark Step (Black Leg)",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DarkStep"] = Value
+        if Value then
+            IniciarLoopEstilo("DarkStep", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+            end)
+        end
     end
 })
 
-Tabs.ShopTab:AddParagraph({
-    Title = "Swords",
-    Content = "Compre espadas abaixo"
-})
-
-Tabs.ShopTab:AddButton({
-    Title = "Cutlass [ 1,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Cutlass") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Katana [ 1,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Katana") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Iron Mace [ 25,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Iron Mace") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Dual Katana [ 12,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Duel Katana") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Triple Katana [ 60,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Triple Katana") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Pipe [ 100,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Pipe") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Dual-Headed Blade [ 400,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Dual-Headed Blade") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Bisento [ 1,200,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Bisento") end)
-    end
-})
-Tabs.ShopTab:AddButton({
-    Title = "Soul Cane [ 750,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Soul Cane") end)
+Tabs.ShopTab:AddToggle("ToggleElectro", {
+    Title = "Auto Electro",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Electro"] = Value
+        if Value then
+            IniciarLoopEstilo("Electro", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+            end)
+        end
     end
 })
 
-Tabs.ShopTab:AddParagraph({
-    Title = "Guns",
-    Content = "Compre armas de fogo abaixo"
+Tabs.ShopTab:AddToggle("ToggleFishman", {
+    Title = "Auto Water Kung Fu",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["WaterKungFu"] = Value
+        if Value then
+            IniciarLoopEstilo("WaterKungFu", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+            end)
+        end
+    end
 })
 
-Tabs.ShopTab:AddButton({
-    Title = "Slingshot [ 5,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Slingshot") end)
+Tabs.ShopTab:AddToggle("ToggleDragonBreath", {
+    Title = "Auto Dragon Breath",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DragonBreath"] = Value
+        if Value then
+            IniciarLoopEstilo("DragonBreath", function()
+                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "1")
+                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+            end)
+        end
     end
 })
-Tabs.ShopTab:AddButton({
-    Title = "Musket [ 8,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Musket") end)
+
+Tabs.ShopTab:AddToggle("ToggleSuperhuman", {
+    Title = "Auto Superhuman",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Superhuman"] = Value
+        if Value then
+            IniciarLoopEstilo("Superhuman", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+            end)
+        end
     end
 })
-Tabs.ShopTab:AddButton({
-    Title = "Flintlock [ 10,500 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Flintlock") end)
+
+Tabs.ShopTab:AddToggle("ToggleDeathStep", {
+    Title = "Auto Death Step",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DeathStep"] = Value
+        if Value then
+            IniciarLoopEstilo("DeathStep", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+            end)
+        end
     end
 })
-Tabs.ShopTab:AddButton({
-    Title = "Refined Flintlock [ 65,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Refined Flintlock") end)
+
+Tabs.ShopTab:AddToggle("ToggleSharkman", {
+    Title = "Auto Sharkman Karate",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["SharkmanKarate"] = Value
+        if Value then
+            IniciarLoopEstilo("SharkmanKarate", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate", true)
+                replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+            end)
+        end
     end
 })
-Tabs.ShopTab:AddButton({
-    Title = "Cannon [ 100,000 Beli ]",
-    Callback = function()
-        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyItem", "Cannon") end)
+
+Tabs.ShopTab:AddToggle("ToggleElectricClaw", {
+    Title = "Auto Electric Claw",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["ElectricClaw"] = Value
+        if Value then
+            IniciarLoopEstilo("ElectricClaw", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+            end)
+        end
     end
 })
-Tabs.ShopTab:AddButton({
-    Title = "Kabucha [ 1,500 Fragments ]",
-    Callback = function()
-        pcall(function()
-            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Slingshot", "1")
-            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Slingshot", "2")
-        end)
+
+Tabs.ShopTab:AddToggle("ToggleDragonTalon", {
+    Title = "Auto Dragon Talon",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DragonTalon"] = Value
+        if Value then
+            IniciarLoopEstilo("DragonTalon", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+            end)
+        end
     end
 })
-Tabs.ShopTab:AddButton({
-    Title = "Bizarre Rifle [ 250 Ectoplasm ]",
-    Callback = function()
-        pcall(function()
-            replicated.Remotes.CommF_:InvokeServer("Ectoplasm", "Buy", 1)
-            replicated.Remotes.CommF_:InvokeServer("Ectoplasm", "Buy", 1)
-        end)
+
+Tabs.ShopTab:AddToggle("ToggleGodhuman", {
+    Title = "Auto Godhuman",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Godhuman"] = Value
+        if Value then
+            IniciarLoopEstilo("Godhuman", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSanguine", {
+    Title = "Auto Sanguine Art",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["SanguineArt"] = Value
+        if Value then
+            IniciarLoopEstilo("SanguineArt", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
+                replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
+            end)
+        end
     end
 })
 
@@ -1239,62 +1318,6 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
                     end
                 end
             end
-        end
-    end
-})
-
-Tabs.Others:AddToggle("AutoPirateRaidToggle", {
-    Title = "Auto Pirate Raid",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoRaidCastle = Value
-        if Value then
-            task.spawn(function()
-                local replicated = game:GetService("ReplicatedStorage")
-                local plr = game.Players.LocalPlayer
-                local TargetCFrame = CFrame.new(-5496.17, 313.76, -2841.53)
-                local CheckCFrame = CFrame.new(-5539.31, 313.80, -2972.37)
-                local EnemyList = {
-                    "Galley Pirate", "Galley Captain", "Raider", "Mercenary",
-                    "Vampire", "Zombie", "Snow Trooper", "Winter Warrior",
-                    "Lab Subordinate", "Horned Warrior", "Magma Ninja", "Lava Pirate",
-                    "Ship Deckhand", "Ship Engineer", "Ship Steward", "Ship Officer",
-                    "Arctic Warrior", "Snow Lurker", "Sea Soldier", "Water Fighter"
-                }
-
-                while _G.AutoRaidCastle do
-                    pcall(function()
-                        local char = plr.Character
-                        if not char then return end
-                        local Root = char:FindFirstChild("HumanoidRootPart")
-                        if not Root then return end
-
-                        if (CheckCFrame.Position - Root.Position).Magnitude <= 500 then
-                            for _, e in pairs(workspace.Enemies:GetChildren()) do
-                                if e:FindFirstChild("HumanoidRootPart") and e:FindFirstChild("Humanoid") and e.Humanoid.Health > 0 then
-                                    if (e.HumanoidRootPart.Position - Root.Position).Magnitude <= 2000 then
-                                        repeat
-                                            task.wait()
-                                            G.Kill(e, _G.AutoRaidCastle)
-                                        until not _G.AutoRaidCastle or not e.Parent or e.Humanoid.Health <= 0
-                                    end
-                                end
-                            end
-                        else
-                            for _, enemyName in pairs(EnemyList) do
-                                if replicated:FindFirstChild(enemyName) then
-                                    for _, n in pairs(replicated:GetChildren()) do
-                                        if table.find(EnemyList, n.Name) then
-                                            _tp(TargetCFrame)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end)
-                    task.wait(0.1)
-                end
-            end)
         end
     end
 })
@@ -1868,80 +1891,134 @@ local function TweenPlayer(TargetCFrame)
     end
 end
 
--- 2. O BOTÃO DA INTERFACE
+-- ==============================================================
+-- AUTO FARM CHEST - MOTOR ULTRA INSTANTÂNEO (COELHO HUB)
+-- ==============================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Farm = _G.Settings.Farm or {}
+_G.Settings.Farm["Auto Farm Chest Tween"] = false
+_G.ChestHopCount = _G.ChestHopCount or 0
+
+local plr = Players.LocalPlayer
+
+-- FUNÇÃO DE SEGURANÇA: DETECTA SE VOCÊ PEGOU ITEM RARO DE BAÚ
+local function _isSpecialChestItem()
+	local character = plr.Character
+	local backpack = plr:FindFirstChild("Backpack")
+	
+	if character and backpack then
+		-- Verifica se o Fist of Darkness ou Gods Chalice entraram no seu inventário
+		if character:FindFirstChild("Fist of Darkness") or backpack:FindFirstChild("Fist of Darkness") or
+		   character:FindFirstChild("Gods Chalice") or backpack:FindFirstChild("Gods Chalice") then
+			return true
+		end
+	end
+	return false
+end
+
+-- 2. O BOTÃO DA INTERFACE (MANTIDO NA MAIN)
 Tabs.Main:AddToggle("ToggleAutoChestOriginal", {
-    Title = "Auto Farm Chest",
-    Description = "",
-    Default = false,
-    Callback = function(Value)
-        _G.Settings.Farm["Auto Farm Chest Tween"] = Value
-        if not Value then
-            local char = plr.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
-            end
-        end
-    end
+	Title = "Auto Farm Chest",
+	Description = "",
+	Default = false,
+	Callback = function(Value)
+		_G.Settings.Farm["Auto Farm Chest Tween"] = Value
+		if not Value then
+			local char = plr.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
+			end
+			shouldTween = false
+		end
+	end
 })
 
 -- 3. LOOP DO NOCLIP BRUTO DE ALTA PERFORMANCE
 RunService.Stepped:Connect(function()
-    if _G.Settings.Farm["Auto Farm Chest Tween"] and plr.Character then
-        for _, part in ipairs(plr.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
+	if _G.Settings.Farm["Auto Farm Chest Tween"] and plr.Character then
+		for _, part in ipairs(plr.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide then
+				part.CanCollide = false
+			end
+		end
+	end
 end)
 
--- 4. MOTOR PRINCIPAL ULTRA RÁPIDO
+-- 4. MOTOR PRINCIPAL ULTRA RÁPIDO COM BYPASS INTEGRADO
 task.spawn(function()
-    -- Cache local da pasta para evitar buscas repetidas no Workspace
-    local chestModels = Workspace:WaitForChild("ChestModels", 5)
+	local chestModels = Workspace:WaitForChild("ChestModels", 5)
 
-    while true do
-        if _G.Settings.Farm["Auto Farm Chest Tween"] then
-            chestModels = Workspace:FindFirstChild("ChestModels")
-            
-            if chestModels then
-                local chests = chestModels:GetChildren()
-                
-                if #chests > 0 then
-                    for i = 1, #chests do
-                        if not _G.Settings.Farm["Auto Farm Chest Tween"] then break end
-                        
-                        local v = chests[i]
-                        local root = v and v:FindFirstChild("RootPart")
-                        
-                        if root and v.Name:find("Chest") then
-                            -- Preso no baú alvo até que ele suma do jogo
-                            repeat
-                                RunService.Heartbeat:Wait()
-                                TweenPlayer(root.CFrame)
-                                
-                                local char = plr.Character
-                                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                                
-                                if hrp then
-                                    firetouchinterest(hrp, root, 0)
-                                    firetouchinterest(hrp, root, 1)
-                                end
-                            until not _G.Settings.Farm["Auto Farm Chest Tween"] or not v.Parent
-                        end
-                    end
-                else
-                    -- Se a pasta estiver vazia, espera um pouco para poupar a CPU
-                    task.wait(0.2)
-                end
-            else
-                task.wait(0.5)
-            end
-        else
-            task.wait(0.5) -- Delay quando o botão está desligado
-        end
-    end
+	while true do
+		task.wait(0) -- Loop de frame zero para máxima velocidade
+		
+		if _G.Settings.Farm["Auto Farm Chest Tween"] then
+			pcall(function()
+				local char = plr.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if not hrp then return end
+
+				-- SISTEMA ANTI-PERDA DE ITEM ESPECIAL
+				if _isSpecialChestItem() then
+					_G.Settings.Farm["Auto Farm Chest Tween"] = false
+					shouldTween = false
+					StarterGui:SetCore("SendNotification", {
+						Title = "Coelho Hub",
+						Text = "Item especial encontrado! Farm de Chest parado por segurança.",
+						Duration = 6
+					})
+					return
+				end
+
+				chestModels = Workspace:FindFirstChild("ChestModels")
+				if chestModels then
+					local chests = chestModels:GetChildren()
+					
+					if #chests > 0 then
+						for i = 1, #chests do
+							if not _G.Settings.Farm["Auto Farm Chest Tween"] or _isSpecialChestItem() then break end
+							
+							local v = chests[i]
+							if v and v.Parent and v.Name:find("Chest") and v:FindFirstChild("RootPart") then
+								local root = v.RootPart
+								
+								-- LOOP RÍGIDO: Prende e executa o bypass de movimento do Eclipse no baú atual
+								repeat
+									RunService.Heartbeat:Wait()
+									
+									-- Teleporta e faz a oscilação de 2 studs para registrar a colisão nativa
+									hrp.CFrame = root.CFrame * CFrame.new(0, 2, 0)
+									task.wait(0.02)
+									hrp.CFrame = root.CFrame * CFrame.new(0, -2, 0)
+									
+									-- Dispara o toque via executor por segurança dupla
+									firetouchinterest(hrp, root, 0)
+									firetouchinterest(hrp, root, 1)
+									
+								until not _G.Settings.Farm["Auto Farm Chest Tween"] or not v.Parent or _isSpecialChestItem()
+								
+								_G.ChestHopCount = _G.ChestHopCount + 1
+							end
+						end
+					else
+						-- Se a pasta estiver vazia, espera um pouco para poupar a CPU
+						task.wait(0.1)
+					end
+				else
+					task.wait(0.3)
+				end
+			end)
+		else
+			task.wait(0.3) -- Delay econômico quando o botão está desligado
+		end
+	end
 end)
 
 -- ==============================================================
