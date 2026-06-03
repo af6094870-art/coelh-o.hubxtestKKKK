@@ -97,7 +97,8 @@ local Tabs = {
     Items = Window:AddTab({ Title = "Items", Icon = "package" }),
     Fruit = Window:AddTab({ Title = "Fruit", Icon = "cherry" }),
     Teleport = Window:AddTab({ Title = "Teleport", Icon = "compass" }),
-    Creditos = Window:AddTab({ Title = "Creditos", Icon = "info" })
+    Creditos = Window:AddTab({ Title = "Creditos", Icon = "info" }),
+    PvpTab = Window:AddTab({ Title = "PvpTab", Icon = "" })
 }
 
 -- [[ GERENCIADORES INTERNOS ]]
@@ -127,9 +128,9 @@ local Pullever = Tabs.Status:AddParagraph({ Title = "Pull Lever", Content = "Sta
 local FM = Tabs.Status:AddParagraph({ Title = "Full Moon", Content = "" })
 local LegendarySword = Tabs.Status:AddParagraph({ Title = "Legendary Sword", Content = "Status: " })
 local Bone = Tabs.Status:AddParagraph({ Title = "Bones", Content = "" })
-local FrutasSpawn = Tabs.Status:AddParagraph({ Title = "Frutas no Mapa", Content = "carregando..." })
 local CheckFod = Tabs.Status:AddParagraph({ Title = "First Of Darkness", Content = "Status: " })
 local CheckChalice = Tabs.Status:AddParagraph({ Title = "God Chalice", Content = "Status: " })
+local FrutasSpawn = Tabs.Status:AddParagraph({ Title = "Frutas no Mapa", Content = "carregando..." })
 
 task.spawn(function()
     while task.wait(1) do
@@ -255,69 +256,6 @@ end)
     end
 end)
 
--- ==============================================================
--- DETECTOR DE FRUTAS DROPADAS - HIGH PERFORMANCE (COELHO HUB)
--- ==============================================================
-
--- Cache de Serviços para otimização de memória
-local Workspace = game:GetService("Workspace")
-local task = task 
-
--- Lista de referência (Mantida idêntica à sua)
-local FRUTAS_LISTA = {
-    "Rocket", "Spin", "Chop", "Spring", "Bomb", "Spike", "Smoke", "Flame", "Falcon",
-    "Ice", "Sand", "Dark", "Diamond", "Light", "Rubber", "Barrier", "Ghost", "Magma",
-    "Quake", "Buddha", "Love", "Spider", "Sound", "Phoenix", "Portal", "Rumble",
-    "Blizzard", "Pain", "Yeti", "Gravity", "Dough", "Shadow", "Venom", "Control",
-    "Spirit", "Gas", "Mammoth", "T-Rex", "Leopard", "Dragon", "Kitsune"
-}
-
--- Função Otimizada de Varredura
-local function AtualizarListaFrutas()
-    local frutasNoMapa = {}
-    local nomesAdicionados = {} -- Tabela de hash para busca instantânea
-    
-    -- Varre apenas a raiz do Workspace para máxima performance
-    local itens = Workspace:GetChildren()
-    
-    for i = 1, #itens do
-        local obj = itens[i]
-        
-        -- Garante que só vai checar as frutas fisicamente dropadas no chão (que têm Handle)
-        if obj:IsA("Model") and obj:FindFirstChild("Handle") then
-            local nomeObjeto = obj.Name
-            
-            -- Verifica se o nome bate com a lista de frutas
-            for j = 1, #FRUTAS_LISTA do
-                local nomeFruta = FRUTAS_LISTA[j]
-                
-                if nomeObjeto == nomeFruta .. " Fruit" or nomeObjeto == nomeFruta then
-                    if not nomesAdicionados[nomeFruta] then
-                        nomesAdicionados[nomeFruta] = true
-                        table.insert(frutasNoMapa, nomeFruta)
-                    end
-                    break 
-                end
-            end
-        end
-    end
-    
-    -- Atualiza o elemento da sua interface (FrutasSpawn)
-    if #frutasNoMapa == 0 then
-        FrutasSpawn:SetDesc("não há nada aqui...")
-    else
-        FrutasSpawn:SetDesc("🍎 " .. table.concat(frutasNoMapa, " | "))
-    end
-end
-
--- Loop de Atualização Automática Rápida (A cada 1.2 segundos)
-task.spawn(function()
-    while true do
-        pcall(AtualizarListaFrutas)
-        task.wait(1.2) -- Ajustado para atualizar quase em tempo real
-    end
-end)
-
 -- Loop Separado: First Of Darkness
 task.spawn(function()
 	while true do
@@ -350,6 +288,46 @@ task.spawn(function()
 			CheckChalice:SetDesc(found and "Status: ✅" or "Status: ❌")
 		end)
 	end
+end)
+
+local FRUTAS_LISTA = {
+    "Rocket", "Spin", "Chop", "Spring", "Bomb", "Spike", "Smoke", "Flame", "Eagle",
+    "Ice", "Sand", "Dark", "Diamond", "Light", "Rubber", "Barrier", "Ghost", "Magma",
+    "Quake", "Buddha", "Love", "Spider", "Sound", "Phoenix", "Portal", "Rumble",
+    "Blizzard", "Pain", "Yeti", "Gravity", "Dough", "Shadow", "Venom", "Control",
+    "Spirit", "Gas", "Mammoth", "T-Rex", "Leopard", "Dragon", "Kitsune"
+}
+
+-- Converte lista em set para busca O(1)
+local FRUTAS_SET = {}
+for _, nome in ipairs(FRUTAS_LISTA) do
+    FRUTAS_SET[nome] = true
+    FRUTAS_SET[nome .. " Fruit"] = true
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            local frutasNoMapa = {}
+            local jaAdicionado = {}
+
+            for _, obj in ipairs(workspace:GetChildren()) do
+                if obj:IsA("Model") and FRUTAS_SET[obj.Name] then
+                    local nomeLimpo = obj.Name:gsub(" Fruit", "")
+                    if not jaAdicionado[nomeLimpo] and obj:FindFirstChildWhichIsA("BasePart") then
+                        jaAdicionado[nomeLimpo] = true
+                        table.insert(frutasNoMapa, nomeLimpo)
+                    end
+                end
+            end
+
+            if #frutasNoMapa == 0 then
+                FrutasSpawn:SetDesc("não há nada aqui...")
+            else
+                FrutasSpawn:SetDesc("🍎 " .. table.concat(frutasNoMapa, " | "))
+            end
+        end)
+    end
 end)
 
 -- ========================================================
@@ -871,45 +849,37 @@ end)
 
 Tabs.Config:AddDropdown("WeaponDropdown", {
     Title = "Choose Weapon",
-    Values = {"---","Melee", "Sword", "Fruit", "Gun",},
-    Default = "---",
-    Callback = function(Value)
-        _G.ChooseWP = Value
+    Values = {"Melee", "Sword", "Fruit", "Gun"},
+    Default = "Melee",
+    Callback = function(value)
+        _G.ChooseWP = value
     end
 })
 
-task.spawn(function()
-    while task.wait(0.3) do
-        pcall(function()
-            local plr = game.Players.LocalPlayer
-            local char = plr.Character
-            if not char then return end
+_G.ChooseWP = _G.ChooseWP or "Melee"
 
-            -- 1. Verifica se já tem alguma Tool (item/arma/fruta) equipada na mão
-            local equipped = char:FindFirstChildOfClass("Tool")
+function _G.ChooseWP2()
+    pcall(function()
+        local plr = game.Players.LocalPlayer
+        local char = plr.Character
+        if not char then return end
 
-            -- 2. SE TIVER QUALQUER COISA NA MÃO E FOR UMA FRUTA (física ou poder), PARA O SCRIPT AQUI
-            if equipped and equipped.ToolTip == "Blox Fruit" then 
-                return 
+        local equipped = char:FindFirstChildOfClass("Tool")
+        if equipped and equipped.ToolTip == "Blox Fruit" then return end
+
+        if not _G.ChooseWP then return end
+
+        local tooltip = (_G.ChooseWP == "Fruit") and "Blox Fruit" or _G.ChooseWP
+
+        for _, v in pairs(plr.Backpack:GetChildren()) do
+            if v.ToolTip == tooltip then
+                _G.SelectWeapon = v.Name
+                char.Humanoid:EquipTool(v)
+                break
             end
-
-            -- Se o dropdown estiver em "---", também não faz nada
-            if _G.ChooseWP == "---" or not _G.ChooseWP then return end
-
-            -- 3. Define o tipo de ToolTip que estamos procurando na Backpack
-            local tooltip = (_G.ChooseWP == "Fruit") and "Blox Fruit" or _G.ChooseWP
-            
-            -- 4. Procura e equipa a arma selecionada
-            for _, v in pairs(plr.Backpack:GetChildren()) do
-                if v.ToolTip == tooltip then
-                    _G.SelectWeapon = v.Name
-                    char.Humanoid:EquipTool(v)
-                    break -- Para o loop assim que achar e equipar a arma certa
-                end
-            end
-        end)
-    end
-end)
+        end
+    end)
+end
 
 Tabs.ShopTab:AddParagraph({
     Title = "Fighting Style",
@@ -1280,15 +1250,16 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
                         local hrp = char:FindFirstChild("HumanoidRootPart")
                         if not hrp then return end
 
+                        _G.ChooseWP2()
+
                         for _, part in pairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
-
                         local bv = Instance.new("BodyVelocity")
                         if (FactoryPos - hrp.Position).Magnitude > 5 then
-                            bv.Velocity = (FactoryPos - hrp.Position).Unit * 200
+                            bv.Velocity = (FactoryPos - hrp.Position).Unit * _G.VelocidadeFarmBone
                         else
                             bv.Velocity = Vector3.new(0, 0, 0)
                         end
@@ -1299,7 +1270,6 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
                     end)
                     task.wait(0.05)
                 end
-
                 local char = game.Players.LocalPlayer.Character
                 if char then
                     for _, part in pairs(char:GetDescendants()) do
@@ -1609,7 +1579,6 @@ Tabs.ShopTab:AddButton({
 _G.FarmEliteHunt = false
 _G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350
 
--- 1. FUNÇÃO UNIVERSAL DE MOVIMENTO (5 STUDS ACIMA)
 local function IrAteNPCSeguro(nomeDoNPC)
     local Players = game:GetService("Players")
     local Workspace = game:GetService("Workspace")
@@ -1640,7 +1609,6 @@ local function IrAteNPCSeguro(nomeDoNPC)
     return false
 end
 
--- 2. O BOTÃO DA INTERFACE (SEM EMOJIS NA DESCRIÇÃO)
 local ToggleEliteHunt = Tabs.Main:AddToggle("EliteHuntToggle", {
     Title = "Auto Farm Elite Hunter",
     Description = "Killed: 0",
@@ -1653,12 +1621,10 @@ local ToggleEliteHunt = Tabs.Main:AddToggle("EliteHuntToggle", {
             if hrp then
                 game:GetService("TweenService"):Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
             end
-            print("Coelho Hub: Auto Elite Hunter desativado.")
         end
     end
 })
 
--- 3. LOOP DO NOCLIP INTELIGENTE (SÓ ATIVA SE O BOSS REALMENTE EXISTIR)
 local _G_StatusBossDisponivel = false
 game:GetService("RunService").Stepped:Connect(function()
     if _G.FarmEliteHunt and _G_StatusBossDisponivel and game.Players.LocalPlayer.Character then
@@ -1670,7 +1636,6 @@ game:GetService("RunService").Stepped:Connect(function()
     end
 end)
 
--- 4. MOTOR PRINCIPAL BLINDADO
 task.spawn(function()
     local plr = game:GetService("Players").LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
@@ -1681,14 +1646,10 @@ task.spawn(function()
         if _G.FarmEliteHunt then
             local eliteFound = false
             
-            -- ESCANEAMENTO REAL DE DISPONIBILIDADE
             pcall(function()
                 local progress = replicated.Remotes.CommF_:InvokeServer("EliteHunter", "Progress")
-                
-                -- Removeu os emojis daqui! Como solicitado com base na image_fd833d.jpg
                 ToggleEliteHunt:SetDesc("Killed: " .. tostring(progress))
                 
-                -- Checa se o Boss físico existe em algum canto
                 local bossNoReplicated = replicated:FindFirstChild("Diablo") or replicated:FindFirstChild("Deandre") or replicated:FindFirstChild("Urban")
                 local bossNoWorkspace = workspace:FindFirstChild("Enemies") and (workspace.Enemies:FindFirstChild("Diablo") or workspace.Enemies:FindFirstChild("Deandre") or workspace.Enemies:FindFirstChild("Urban"))
                 
@@ -1699,23 +1660,17 @@ task.spawn(function()
 
             _G_StatusBossDisponivel = eliteFound
 
-            -- [TRAVA DE SEGURANÇA ABSOLUTA]: Se não encontrou o boss, o player FICA CONGELADO no lugar
             if not eliteFound then
                 pcall(function()
                     local char = plr.Character
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
                     if hrp then
-                        -- Força o CFrame a travar na posição atual imediatamente e cancela voos anteriores
                         TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
                     end
                 end)
-                -- Aborta a execução do frame atual. O jogador não vai sair do lugar de jeito nenhum.
-                continue 
+                continue
             end
 
-            -- ==============================================================
-            -- O CÓDIGO ABAIXO SÓ EXISTE SE O BOSS ESTIVER VIVO NO SERVIDOR
-            -- ==============================================================
             pcall(function()
                 local char = plr.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1723,19 +1678,18 @@ task.spawn(function()
 
                 local questUI = plr.PlayerGui.Main.Quest
 
-                -- Se já estiver com a Quest aberta na tela
                 if questUI and questUI.Visible == true then
                     local titulo = questUI.Container.QuestTitle.Title.Text
                     if string.find(titulo, "Diablo") or string.find(titulo, "Urban") or string.find(titulo, "Deandre") then
                         
-                        -- Voa para o boss e para 5 studs acima
+                        _G.ChooseWP2()
                         local cacando = IrAteNPCSeguro("Diablo") or IrAteNPCSeguro("Urban") or IrAteNPCSeguro("Deandre")
                         
                         if not cacando then
-                            -- Força o tracking caso ele ainda esteja carregando na memória do Replicated
                             for _, v in pairs(replicated:GetChildren()) do
                                 if string.find(v.Name, "Diablo") or string.find(v.Name, "Urban") or string.find(v.Name, "Deandre") then
                                     if v:FindFirstChild("HumanoidRootPart") then
+                                        _G.ChooseWP2()
                                         local destinoSeguro = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
                                         local distancia = (hrp.Position - destinoSeguro.Position).Magnitude
                                         local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
@@ -1746,7 +1700,6 @@ task.spawn(function()
                         end
                     end
                 else
-                    -- O Boss tá no servidor mas você está sem a quest? Voa até o NPC pegar
                     local coordenadaNPCSegura = CFrame.new(-5417.66, 313.06 + 5, -2822.91)
                     local distancia = (hrp.Position - coordenadaNPCSegura.Position).Magnitude
 
@@ -1839,7 +1792,7 @@ Tabs.Creditos:AddButton({
     Title = "Copiar Link do Server",
     Description = "",
     Callback = function()
-        setclipboard("https://discord.gg/QH4vbmq29")
+        setclipboard("https://discord.gg/tdSwHMhqZ")
         print("Coelho Hub: Link copiado!")
     end
 })
