@@ -1231,38 +1231,44 @@ Tabs.ShopTab:AddButton({
     end
 })
 
+
+local SeaDois = {
+    [79091703265657] = true,
+    [996949360] = true,
+}
+
 Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
     Title = "Auto Factory Raid",
     Default = false,
     Callback = function(Value)
         _G.AutoFactory = Value
         if Value then
+            if not SeaDois[game.PlaceId] then
+                _G.AutoFactory = false
+                return
+            end
             task.spawn(function()
-                local FactoryPos = Vector3.new(430.98, 238.41, -433.16)
+                local FactoryDestino = CFrame.new(440.029694, 178.362595, -420.992828, 0.806989491, 4.07265439e-08, 0.590565801, -3.33742776e-08, 1, -2.33570123e-08, -0.590565801, -8.60842453e-10, 0.806989491)
                 while _G.AutoFactory do
                     pcall(function()
                         local char = game.Players.LocalPlayer.Character
                         if not char then return end
                         local hrp = char:FindFirstChild("HumanoidRootPart")
                         if not hrp then return end
-
-                        _G.ChooseWP2()
-
                         for _, part in pairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
-                        local bv = Instance.new("BodyVelocity")
-                        if (FactoryPos - hrp.Position).Magnitude > 5 then
-                            bv.Velocity = (FactoryPos - hrp.Position).Unit * _G.VelocidadeFarmBone
+                        local distancia = (hrp.Position - FactoryDestino.Position).Magnitude
+                        if distancia > 5 then
+                            local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
+                            game:GetService("TweenService"):Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = FactoryDestino}):Play()
+                            task.wait(tempo)
                         else
-                            bv.Velocity = Vector3.new(0, 0, 0)
+                            hrp.CFrame = FactoryDestino
+                            _G.ChooseWP2()
                         end
-                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bv.Parent = hrp
-                        task.wait(0.05)
-                        bv:Destroy()
                     end)
                     task.wait(0.05)
                 end
@@ -1287,6 +1293,7 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
         end
     end
 })
+
 
 -- 1. Deixe a variável de controle no topo do script (fora da toggle e do loop)
 local Boud = false
@@ -2091,21 +2098,51 @@ task.spawn(function()
     end
 end)
 
+repeat wait() until game:IsLoaded()
+
+local PlaceIds = {
+    [2753915549] = "World 1",
+    [4442272183] = "World 2",
+    [7449423635] = "World 3 ",
+    [79091703265657] = "Sea 2",
+    [996949360] = "Sea 2",
+    [100117331123089] = "World 3",
+}
+
+local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
+
+Tabs.Status:AddParagraph({
+    Title = "Mundo Atual",
+    Content = CurrentWorld
+})
+
 _G.BaitAmount = 10
 _G.SelectedBait = "Basic Bait"
 _G.AutoCraftBait = false
 
--- 1. DROPDOWN APENAS COM A BASIC BAIT
+local Sea2Ids = {[79091703265657] = true, [996949360] = true}
+local Sea3Ids = {[7449423635] = true, [100117331123089] = true}
+
+local function GetAnglerCFrame()
+    local placeId = game.PlaceId
+    if Sea2Ids[placeId] then
+        return CFrame.new(-1942.65723, 6.4788909, -2605.2312, 0.596867919, -3.44649553e-09, -0.802339554, -2.59415778e-08, 1, -2.35937403e-08, 0.802339554, 3.48962992e-08, 0.596867919)
+    elseif Sea3Ids[placeId] then
+        return CFrame.new(-16201.0859, 9.70211792, 441.266724, 0.190850228, -3.35462218e-08, -0.981619179, 1.69887677e-08, 1, -3.08713517e-08, 0.981619179, -1.07846958e-08, 0.190850228)
+    else
+        return CFrame.new(26.5670776, 10.6520329, 5344.48633, -0.961029828, 1.24920945e-08, -0.276444763, 2.37652227e-08, 1, -3.74287907e-08, 0.276444763, -4.2539952e-08, -0.961029828)
+    end
+end
+
 Tabs.Others:AddDropdown("BaitSelector", {
     Title = "Select Bait Type",
-    Values = {"Basic Bait"}, -- Apenas a Basic Bait disponível
+    Values = {"Basic Bait", "Abyssal Bait"},
     Default = "Basic Bait",
     Callback = function(Value)
         _G.SelectedBait = Value
     end
 })
 
--- 2. TOGGLE PARA CRAFTAR
 Tabs.Others:AddToggle("AutoCraftBait", {
     Title = "Craft Bait",
     Default = false,
@@ -2116,21 +2153,21 @@ Tabs.Others:AddToggle("AutoCraftBait", {
                 while _G.AutoCraftBait do
                     pcall(function()
                         if not _G.AutoCraftBait then return end
-                        
                         local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp then
-                            -- Teleporte para o local de craft
-                            hrp.CFrame = CFrame.new(26.5670776, 10.6520329, 5344.48633, -0.961029828, 1.24920945e-08, -0.276444763, 2.37652227e-08, 1, -3.74287907e-08, 0.276444763, -4.2539952e-08, -0.961029828)
-                            task.wait(0.5)
-                            
-                            if not _G.AutoCraftBait then return end
-                            
-                            -- Envia o comando para craftar a isca selecionada
-                            local args = {"Craft", _G.SelectedBait, _G.BaitAmount, {}}
-                            game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RF/Craft"):InvokeServer(unpack(args))
-                        end
+                        if not hrp then return end
+
+                        local destino = GetAnglerCFrame()
+                        local distancia = (hrp.Position - destino.Position).Magnitude
+                        local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
+                        game:GetService("TweenService"):Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destino}):Play()
+                        task.wait(tempo + 0.3)
+
+                        if not _G.AutoCraftBait then return end
+
+                        local args = {"Craft", _G.SelectedBait, _G.BaitAmount, {}}
+                        game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RF/Craft"):InvokeServer(unpack(args))
                     end)
-                    task.wait(1) -- Tempo de espera entre cada tentativa de craft
+                    task.wait(1)
                 end
             end)
         end
@@ -2143,6 +2180,36 @@ Tabs.Others:AddDropdown("BaitAmountDropdown", {
     Default = "10",
     Callback = function(Value)
         _G.BaitAmount = tonumber(Value)
+    end
+})
+
+local Players = game:GetService("Players")
+
+local playerList = {}
+
+local function getPlayerNames()
+    local names = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        table.insert(names, p.Name)
+    end
+    return names
+end
+
+local selectedPlayer = nil
+
+local PlayerDropdown = Tabs.PvpTab:AddDropdown("PlayerDropdown", {
+    Title = "Jogadores",
+    Values = getPlayerNames(),
+    Default = nil,
+    Callback = function(Value)
+        selectedPlayer = Value
+    end
+})
+
+Tabs.PvpTab:AddButton({
+    Title = "Refresh",
+    Callback = function()
+        PlayerDropdown:SetValues(getPlayerNames())
     end
 })
 
