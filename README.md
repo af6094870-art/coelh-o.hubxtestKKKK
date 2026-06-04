@@ -91,7 +91,7 @@ local Tabs = {
     ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "coins" }),
     Race = Window:AddTab({ Title = "Race", Icon = "" }),
     Others = Window:AddTab({ Title = "Others", Icon = "" }),
-    Status = Window:AddTab({ Title = "Status", Icon = "activity" }),
+    Status = Window:AddTab({ Title = "Status and Server", Icon = "activity" }),
     Config = Window:AddTab({ Title = "config", Icon = "settings" }),
     Main = Window:AddTab({ Title = "Main", Icon = "sword" }),
     Items = Window:AddTab({ Title = "Items", Icon = "package" }),
@@ -2094,3 +2094,248 @@ task.spawn(function()
         end
     end
 end)
+
+_G.BaitAmount = 10
+_G.SelectedBait = "Basic Bait"
+_G.AutoCraftBait = false
+
+-- 1. DROPDOWN APENAS COM A BASIC BAIT
+Tabs.Others:AddDropdown("BaitSelector", {
+    Title = "Select Bait Type",
+    Values = {"Basic Bait"}, -- Apenas a Basic Bait disponível
+    Default = "Basic Bait",
+    Callback = function(Value)
+        _G.SelectedBait = Value
+    end
+})
+
+-- 2. TOGGLE PARA CRAFTAR
+Tabs.Others:AddToggle("AutoCraftBait", {
+    Title = "Craft Bait",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoCraftBait = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoCraftBait do
+                    pcall(function()
+                        if not _G.AutoCraftBait then return end
+                        
+                        local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            -- Teleporte para o local de craft
+                            hrp.CFrame = CFrame.new(26.5670776, 10.6520329, 5344.48633, -0.961029828, 1.24920945e-08, -0.276444763, 2.37652227e-08, 1, -3.74287907e-08, 0.276444763, -4.2539952e-08, -0.961029828)
+                            task.wait(0.5)
+                            
+                            if not _G.AutoCraftBait then return end
+                            
+                            -- Envia o comando para craftar a isca selecionada
+                            local args = {"Craft", _G.SelectedBait, _G.BaitAmount, {}}
+                            game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RF/Craft"):InvokeServer(unpack(args))
+                        end
+                    end)
+                    task.wait(1) -- Tempo de espera entre cada tentativa de craft
+                end
+            end)
+        end
+    end
+})
+
+Tabs.Others:AddDropdown("BaitAmountDropdown", {
+    Title = "Quantidade de Bait",
+    Values = {"10", "20", "30", "40", "50"},
+    Default = "10",
+    Callback = function(Value)
+        _G.BaitAmount = tonumber(Value)
+    end
+})
+
+_G.AutoFarmInimigos = false -- Começa desligado na Toggle
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Função para mover o jogador usando o seu Slider (_G.VelocidadeFarmBone)
+local function voarAteInimigo(posicaoAlvo)
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    -- Usa diretamente a velocidade do seu Slider, com um fallback de segurança caso seja 0
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350 
+    local duracao = distancia / velocidade
+    
+    local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(posicaoAlvo)})
+    
+    tween:Play()
+    return tween
+end
+
+-- TOGGLE PARA O SEU MENU
+Tabs.Main:AddToggle("AutoFarmInimigosToggle", {
+    Title = "Auto Farm bone",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmInimigos = Value
+        
+        if Value then
+            task.spawn(function()
+                while _G.AutoFarmInimigos do
+                    pcall(function()
+                        local character = LocalPlayer.Character
+                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        
+                        if hrp and humanoid and humanoid.Health > 0 then
+                            
+                            -- Executa a SUA função de equipar que está na imagem 1
+                            if type(_G.ChooseWP2) == "function" then
+                                _G.ChooseWP2()
+                            end
+                            
+                            local inimigoAtual = nil
+                            local listaInimigos = workspace.Enemies:GetChildren()
+                            
+                            -- Varre a pasta procurando o primeiro inimigo vivo para focar o voo
+                            for _, inimigo in pairs(listaInimigos) do
+                                local enemyHumanoid = inimigo:FindFirstChildOfClass("Humanoid")
+                                local enemyHrp = inimigo:FindFirstChild("HumanoidRootPart")
+                                
+                                if enemyHrp and enemyHumanoid and enemyHumanoid.Health > 0 then
+                                    inimigoAtual = inimigo
+                                    break
+                                end
+                            end
+                            
+                            -- Se achar o alvo, voa até ele até sumir ou morrer
+                            if inimigoAtual then
+                                local enemyHrp = inimigoAtual:FindFirstChild("HumanoidRootPart")
+                                local enemyHumanoid = inimigoAtual:FindFirstChildOfClass("Humanoid")
+                                
+                                while _G.AutoFarmInimigos and inimigoAtual.Parent == workspace.Enemies and enemyHumanoid and enemyHumanoid.Health > 0 do
+                                    if enemyHrp then
+                                        voarAteInimigo(enemyHrp.Position)
+                                    end
+                                    
+                                    -- INTEGRACAO DO BRING MOB RADIUS
+                                    -- Se o slider for maior que 300, executa a atração dos outros mobs
+                                    if _G.BringMobRadius and _G.BringMobRadius > 300 then
+                                        for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                                            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+                                            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+                                            
+                                            -- Puxa se o mob estiver vivo e NÃO for o seu alvo atual do voo
+                                            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= inimigoAtual then
+                                                local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
+                                                
+                                                -- Só teleporta se estiver dentro do raio estipulado no Slider
+                                                if distanciaMob <= _G.BringMobRadius then
+                                                    mobHrp.CFrame = hrp.CFrame
+                                                end
+                                            end
+                                        end
+                                    end
+                                    
+                                    task.wait(0.1) -- Atualização rápida do Tween e do Bring Mob
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.2) -- Pausa rápida antes de puxar o próximo inimigo vivo
+                end
+            end)
+        end
+    end
+})
+
+_G.AutoBuyBones = false -- Começa desligado
+
+-- TOGGLE PARA COMPRAR COM BONES
+Tabs.Main:AddToggle("AutoBuyBonesToggle", {
+    Title = "random bones",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoBuyBones = Value
+        
+        if Value then
+            task.spawn(function()
+                while _G.AutoBuyBones do
+                    pcall(function()
+                        -- Executa o remote enviado com os seus argumentos
+                        local args = {
+                            "Bones",
+                            "Buy",
+                            1,
+                            1
+                        }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
+                    end)
+                    task.wait(0.5) -- Intervalo entre cada compra (ajuste se quiser mais rápido ou mais lento)
+                end
+            end)
+        end
+    end
+})
+
+_G.BringMobRadius = 300 -- Começa em 300 (Desativado)
+
+-- 1. O SLIDER NA ABA CONFIG
+Tabs.Config:AddSlider("BringMobRadiusSlider", {
+    Title = "Bring Mob Distance",
+    Description = "bring mob",
+    Min = 300,
+    Max = 500,
+    Default = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.BringMobRadius = Value
+    end
+})
+
+-- 2. A FUNÇÃO ISOLADA COM AJUSTE DE ALTURA (-3 STUDS)
+_G.BringMobFuncion = function(alvoPrincipal)
+    -- Só executa se o slider estiver acima de 300
+    if not _G.BringMobRadius or _G.BringMobRadius <= 300 then return end
+    
+    local character = game.Players.LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Varre a pasta de inimigos
+    for _, mob in pairs(workspace.Enemies:GetChildren()) do
+        local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+        local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+        
+        -- Verifica se o mob está vivo e ignora o alvo principal do voo
+        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= alvoPrincipal then
+            local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
+            
+            -- Se estiver dentro do raio definido no Slider, puxa exatamente 3 studs abaixo
+            if distanciaMob <= _G.BringMobRadius then
+                -- O CFrame pega a sua posição e subtrai 3 studs apenas na altura (eixo Y)
+            mobHrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, -3, 0))
+            end
+        end
+    end
+end
+
+repeat wait() until game:IsLoaded()
+
+local PlaceIds = {
+    [2753915549] = "World 1",
+    [4442272183] = "World 2",
+    [7449423635] = "World 3 ",
+    [79091703265657] = "Sea 2",
+    [996949360] = "Sea 2",
+    [100117331123089] = "World 3",
+}
+
+local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
+
+Tabs.Status:AddParagraph({
+    Title = "Mundo Atual",
+    Content = CurrentWorld
+})
