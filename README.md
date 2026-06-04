@@ -2098,24 +2098,6 @@ task.spawn(function()
     end
 end)
 
-repeat wait() until game:IsLoaded()
-
-local PlaceIds = {
-    [2753915549] = "World 1",
-    [4442272183] = "World 2",
-    [7449423635] = "World 3 ",
-    [79091703265657] = "Sea 2",
-    [996949360] = "Sea 2",
-    [100117331123089] = "World 3",
-}
-
-local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
-
-Tabs.Status:AddParagraph({
-    Title = "Mundo Atual",
-    Content = CurrentWorld
-})
-
 _G.BaitAmount = 10
 _G.SelectedBait = "Basic Bait"
 _G.AutoCraftBait = false
