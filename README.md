@@ -84,16 +84,17 @@ end)
 -- 1. PRIMEIRO: CRIA TODAS AS ABAS DO MENU
 -- ========================================================
 local Tabs = {
-    ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "coins" }),
+    ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "" }),
     Race = Window:AddTab({ Title = "Race", Icon = "" }),
-    Others = Window:AddTab({ Title = "Others", Icon = "bag" }),
-    Status = Window:AddTab({ Title = "Status and Server", Icon = "activity" }),
-    Config = Window:AddTab({ Title = "config", Icon = "settings" }),
-    Main = Window:AddTab({ Title = "Main", Icon = "sword" }),
-    Items = Window:AddTab({ Title = "Items", Icon = "package" }),
-    Fruit = Window:AddTab({ Title = "Fruit", Icon = "cherry" }),
-    Teleport = Window:AddTab({ Title = "Teleport", Icon = "compass" }),
-    Creditos = Window:AddTab({ Title = "Creditos", Icon = "info" }),
+    Others = Window:AddTab({ Title = "Others", Icon = "" }),
+    Status = Window:AddTab({ Title = "Status and Server", Icon = "" }),
+    Config = Window:AddTab({ Title = "config", Icon = "" }),
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Items = Window:AddTab({ Title = "Items", Icon = "" }),
+    Stack = Window:AddTab({ Title = "Stack farm", Icon = "" }),
+    Fruit = Window:AddTab({ Title = "Fruit", Icon = "" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "" }),
+    Creditos = Window:AddTab({ Title = "Creditos", Icon = "" }),
     PvpTab = Window:AddTab({ Title = "PvpTab", Icon = "" })
 }
 
@@ -2251,7 +2252,7 @@ Tabs.PvpTab:AddButton({
 _G.VoarAteJogador = false
 
 Tabs.PvpTab:AddToggle("VoarAteJogador", {
-    Title = "Fly to player",
+    Title = "Voar até Jogador",
     Default = false,
     Callback = function(Value)
         _G.VoarAteJogador = Value
@@ -2281,6 +2282,244 @@ Tabs.PvpTab:AddToggle("VoarAteJogador", {
                     else
                         task.wait(0.2)
                     end
+                end
+            end)
+        end
+    end
+})
+
+_G.Test = false
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local CFrameEspera = CFrame.new(-9502.07227, 501.75415, 6012.94678, 0.0197974183, 0.000531507714, 0.999803841, 0.00015926265, 0.999999821, -0.000534765481, -0.99980402, 0.000169818391, 0.0197973307)
+
+local Sea3Ids = {
+    [7449423635] = true,
+    [100117331123089] = true,
+}
+
+local function getRandomNPC()
+    local mobReborn = workspace.Enemies["Reborn Skeleton"]
+    local mobIndex8 = workspace.Enemies:GetChildren()[8]
+    local mobIndex9 = workspace.Enemies:GetChildren()[9]
+    local mobIndex10 = workspace.Enemies:GetChildren()[10]
+    local mobIndex12 = workspace.Enemies:GetChildren()[12]
+    local mobIndex13 = workspace.Enemies:GetChildren()[13]
+    local mobIndex19 = workspace.Enemies:GetChildren()[19]
+
+    local listaNPCs = {
+        mobReborn, mobIndex8, mobIndex9, mobIndex10, mobIndex12, mobIndex13, mobIndex19
+    }
+
+    local vivos = {}
+    for _, mob in ipairs(listaNPCs) do
+        if mob then
+            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
+                table.insert(vivos, mob)
+            end
+        end
+    end
+
+    if #vivos == 0 then return nil end
+    return vivos[math.random(1, #vivos)]
+end
+
+local function voarAte(hrp, posicaoAlvo)
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    local duracao = distancia / velocidade
+    local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(posicaoAlvo)})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+Tabs.Main:AddToggle("Test", {
+    Title = "Farm bone",
+    Default = false,
+    Callback = function(Value)
+        _G.Test = Value
+
+        if Value then
+            task.spawn(function()
+                if not Sea3Ids[game.PlaceId] then
+                    _G.Test = false
+                    return
+                end
+
+                local character = LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                voarAte(hrp, CFrameEspera.Position)
+
+                while _G.Test do
+                    pcall(function()
+                        character = LocalPlayer.Character
+                        hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then return end
+
+                        local inimigoAtual = getRandomNPC()
+
+                        if not inimigoAtual then
+                            while _G.Test and not getRandomNPC() do
+                                task.wait(0.5)
+                            end
+                            return
+                        end
+
+                        local mobHrp = inimigoAtual:FindFirstChild("HumanoidRootPart")
+                        local mobHumanoid = inimigoAtual:FindFirstChildOfClass("Humanoid")
+
+                        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
+                            _G.ChooseWP2()
+                            voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
+
+                            while _G.Test and inimigoAtual.Parent == workspace.Enemies and mobHumanoid and mobHumanoid.Health > 0 do
+                                character = LocalPlayer.Character
+                                hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                if not hrp then break end
+
+                                _G.ChooseWP2()
+                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
+                            end
+                        end
+                    end)
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+})
+
+_G.TestVoarCakePrince = false
+
+local TweenService = game:GetService("TweenService")
+
+local CFrameInicio = CFrame.new(-2135.04028, 70.0246201, -12396.6025, 0.995649099, -1.74269381e-08, 0.0931816623, 2.13228315e-08, 1, -4.08140401e-08, -0.0931816623, 4.26233591e-08, 0.995649099)
+
+local function voarAte(hrp, posicaoAlvo)
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    if distancia < 2 then return end
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    local duracao = distancia / velocidade
+    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
+    tween:Play()
+    local timeout = tick() + duracao + 1
+    repeat
+        task.wait(0.1)
+    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.TestVoarCakePrince
+end
+
+Tabs.Stack:AddToggle("TestVoarCakePrince", {
+    Title = "kill cake prince",
+    Default = false,
+    Callback = function(Value)
+        _G.TestVoarCakePrince = Value
+
+        if Value then
+            task.spawn(function()
+                local character = game.Players.LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                -- voa pro CFrame inicial primeiro
+                voarAte(hrp, CFrameInicio.Position)
+
+                while _G.TestVoarCakePrince do
+                    pcall(function()
+                        character = game.Players.LocalPlayer.Character
+                        hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then return end
+
+                        local boss = game:GetService("ReplicatedStorage"):FindFirstChild("Cake Prince")
+                        if not boss then return end
+
+                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
+                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
+
+                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
+                            while _G.TestVoarCakePrince and boss.Parent and bossHumanoid.Health > 0 do
+                                character = game.Players.LocalPlayer.Character
+                                hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                if not hrp then break end
+
+                                _G.ChooseWP2()
+                                voarAte(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
+                            end
+                        end
+                    end)
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+})
+
+_G.TestVoarCakePrince = false
+
+local TweenService = game:GetService("TweenService")
+
+local CFrameInicio = CFrame.new(-2135.04028, 70.0246201, -12396.6025, 0.995649099, -1.74269381e-08, 0.0931816623, 2.13228315e-08, 1, -4.08140401e-08, -0.0931816623, 4.26233591e-08, 0.995649099)
+
+local function voarAte(hrp, posicaoAlvo)
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    if distancia < 2 then return end
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    local duracao = distancia / velocidade
+    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
+    tween:Play()
+    local timeout = tick() + duracao + 1
+    repeat
+        task.wait(0.1)
+    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.TestVoarCakePrince
+end
+
+Tabs.Stack:AddToggle("TestVoarCakePrince", {
+    Title = "kill cake prince",
+    Default = false,
+    Callback = function(Value)
+        _G.TestVoarCakePrince = Value
+
+        if Value then
+            task.spawn(function()
+                while _G.TestVoarCakePrince do
+                    pcall(function()
+                        local character = game.Players.LocalPlayer.Character
+                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then return end
+
+                        local boss = game:GetService("ReplicatedStorage"):FindFirstChild("Cake Prince")
+
+                        -- só faz algo se o npc estiver spawnado
+                        if not boss then
+                            task.wait(0.5)
+                            return
+                        end
+
+                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
+                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
+
+                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
+                            -- voa pro CFrame inicial antes de ir pro boss
+                            voarAte(hrp, CFrameInicio.Position)
+
+                            while _G.TestVoarCakePrince and boss.Parent and bossHumanoid.Health > 0 do
+                                character = game.Players.LocalPlayer.Character
+                                hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                if not hrp then break end
+
+                                _G.ChooseWP2()
+                                voarAte(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
+                            end
+                        end
+                    end)
+                    task.wait(0.2)
                 end
             end)
         end
