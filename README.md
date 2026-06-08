@@ -16,7 +16,7 @@ local L_1_BYPASS_ = false
 
 -- LISTA DE TESTERS AUTORIZADOS A USAR A CHAVE GIGANTE (Adicione ou mude os nicks aqui)
 local L_1_ADMIN_USERS_ = {
-    "Amigo_desonesto0","amigohon8"
+    "Amigo_desonesto0",
 }
 
 -- 1. VERIFICAÇÃO DE CHAVES VÁLIDAS
