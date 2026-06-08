@@ -4,7 +4,7 @@ local Fluent = pcall(function()
 end)
 
 -- CONFIGURAÇÕES DE KEYS E ACESSOS DO COELHO HUB
-local CHAVE_PUBLICA = "VR 6.3"
+local CHAVE_PUBLICA = ""
 local CHAVE_TESTER_OFICIAL = "FLYSGASHPAIHSAFSJAKLSHFGHJKLKJHGFGSFGHAGFGGFY"
 local ID_IMAGEM_TESTER = "rbxassetid://71227064035550"
 
@@ -14,9 +14,9 @@ local L_1_PNAME_ = tostring(game:GetService("Players").LocalPlayer.Name)
 local L_1_PNAME_L_ = string.lower(L_1_PNAME_)
 local L_1_BYPASS_ = false
 
--- LISTA DE TESTERS AUTORIZADOS A USAR A CHAVE GIGANTE (Adicione ou mude os nicks aqui)
+-- LISTA DE TESTERS AUTORIZADOS A USAR A CHAVE GIGANTE
 local L_1_ADMIN_USERS_ = {
-    "Amigo_desonesto0",
+    "amigo_desonesto0"
 }
 
 -- 1. VERIFICAÇÃO DE CHAVES VÁLIDAS
@@ -64,6 +64,21 @@ if L_1_KEY_ == CHAVE_TESTER_OFICIAL then
     end
     L_1_BYPASS_ = true
 end
+
+-- 3. VERIFICAÇÕES DE SEGURANÇA (PULADAS SE FOR UM TESTER OFICIAL)
+if not L_1_BYPASS_ then
+    -- Checa se o cara já foi auto-banido antes
+    local L_1_IS_BLOCKED_ = false
+    pcall(function()
+        if isfolder and isfolder("CoelhoHub Configs")
+            and isfile and isfile("CoelhoHub Configs/C_BLOCKED_" .. L_1_PNAME_ .. ".txt") then
+            L_1_IS_BLOCKED_ = true
+        end
+    end)
+    if L_1_IS_BLOCKED_ then
+        game:GetService("Players").LocalPlayer:Kick("Blacklisted Player F0r3v3r")
+        return
+    end
 
     -- Restrição de Mapas (Blox Fruits - Sea 1, Sea 2, Sea 3, etc.)
     local L_1_PLACES_ = {
