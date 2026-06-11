@@ -1,3 +1,7 @@
+-- [[ Coelho Hub - Clean Template ]]
+-- Desenvolvido na pura força do tédio (e do pó de café)
+-- Créditos: by mr by tedio
+
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -84,8 +88,17 @@ end)
 -- 1. PRIMEIRO: CRIA TODAS AS ABAS DO MENU
 -- ========================================================
 local Tabs = {
+    ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "coins" }),
     ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "" }),
     Race = Window:AddTab({ Title = "Race", Icon = "" }),
+    Others = Window:AddTab({ Title = "Others", Icon = "bag" }),
+    Status = Window:AddTab({ Title = "Status and Server", Icon = "activity" }),
+    Config = Window:AddTab({ Title = "config", Icon = "settings" }),
+    Main = Window:AddTab({ Title = "Main", Icon = "sword" }),
+    Items = Window:AddTab({ Title = "Items", Icon = "package" }),
+    Fruit = Window:AddTab({ Title = "Fruit", Icon = "cherry" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "compass" }),
+    Creditos = Window:AddTab({ Title = "Creditos", Icon = "info" }),
     Others = Window:AddTab({ Title = "Others", Icon = "" }),
     Status = Window:AddTab({ Title = "Status and Server", Icon = "" }),
     Config = Window:AddTab({ Title = "config", Icon = "" }),
@@ -103,6 +116,9 @@ SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:SetIgnoreIndexes({})
 
+
+-- ========================================================
+-- ABA CONFIG
 -- ========================================================
 
 local replicated = game:GetService("ReplicatedStorage")
@@ -122,6 +138,7 @@ local Pullever = Tabs.Status:AddParagraph({ Title = "Pull Lever", Content = "Sta
 local FM = Tabs.Status:AddParagraph({ Title = "Full Moon", Content = "" })
 local LegendarySword = Tabs.Status:AddParagraph({ Title = "Legendary Sword", Content = "Status: " })
 local Bone = Tabs.Status:AddParagraph({ Title = "Bones", Content = "" })
+local FrutasSpawn = Tabs.Status:AddParagraph({ Title = "Frutas no Mapa", Content = "carregando..." })
 local CheckFod = Tabs.Status:AddParagraph({ Title = "First Of Darkness", Content = "Status: " })
 local CheckChalice = Tabs.Status:AddParagraph({ Title = "God Chalice", Content = "Status: " })
 local FrutasSpawn = Tabs.Status:AddParagraph({ Title = "Frutas no Mapa", Content = "carregando..." })
@@ -247,6 +264,69 @@ end)
             local bones = replicated.Remotes.CommF_:InvokeServer("Bones", "Check")
             Bone:SetDesc("You Have : " .. tostring(bones) .. " Bones")
         end)
+    end
+end)
+
+-- ==============================================================
+-- DETECTOR DE FRUTAS DROPADAS - HIGH PERFORMANCE (COELHO HUB)
+-- ==============================================================
+
+-- Cache de Serviços para otimização de memória
+local Workspace = game:GetService("Workspace")
+local task = task 
+
+-- Lista de referência (Mantida idêntica à sua)
+local FRUTAS_LISTA = {
+    "Rocket", "Spin", "Chop", "Spring", "Bomb", "Spike", "Smoke", "Flame", "Falcon",
+    "Ice", "Sand", "Dark", "Diamond", "Light", "Rubber", "Barrier", "Ghost", "Magma",
+    "Quake", "Buddha", "Love", "Spider", "Sound", "Phoenix", "Portal", "Rumble",
+    "Blizzard", "Pain", "Yeti", "Gravity", "Dough", "Shadow", "Venom", "Control",
+    "Spirit", "Gas", "Mammoth", "T-Rex", "Leopard", "Dragon", "Kitsune"
+}
+
+-- Função Otimizada de Varredura
+local function AtualizarListaFrutas()
+    local frutasNoMapa = {}
+    local nomesAdicionados = {} -- Tabela de hash para busca instantânea
+    
+    -- Varre apenas a raiz do Workspace para máxima performance
+    local itens = Workspace:GetChildren()
+    
+    for i = 1, #itens do
+        local obj = itens[i]
+        
+        -- Garante que só vai checar as frutas fisicamente dropadas no chão (que têm Handle)
+        if obj:IsA("Model") and obj:FindFirstChild("Handle") then
+            local nomeObjeto = obj.Name
+            
+            -- Verifica se o nome bate com a lista de frutas
+            for j = 1, #FRUTAS_LISTA do
+                local nomeFruta = FRUTAS_LISTA[j]
+                
+                if nomeObjeto == nomeFruta .. " Fruit" or nomeObjeto == nomeFruta then
+                    if not nomesAdicionados[nomeFruta] then
+                        nomesAdicionados[nomeFruta] = true
+                        table.insert(frutasNoMapa, nomeFruta)
+                    end
+                    break 
+                end
+            end
+        end
+    end
+    
+    -- Atualiza o elemento da sua interface (FrutasSpawn)
+    if #frutasNoMapa == 0 then
+        FrutasSpawn:SetDesc("não há nada aqui...")
+    else
+        FrutasSpawn:SetDesc("🍎 " .. table.concat(frutasNoMapa, " | "))
+    end
+end
+
+-- Loop de Atualização Automática Rápida (A cada 1.2 segundos)
+task.spawn(function()
+    while true do
+        pcall(AtualizarListaFrutas)
+        task.wait(1.2) -- Ajustado para atualizar quase em tempo real
     end
 end)
 
@@ -843,6 +923,10 @@ end)
 
 Tabs.Config:AddDropdown("WeaponDropdown", {
     Title = "Choose Weapon",
+    Values = {"---","Melee", "Sword", "Fruit", "Gun",},
+    Default = "---",
+    Callback = function(Value)
+        _G.ChooseWP = Value
     Values = {"Melee", "Sword", "Fruit", "Gun"},
     Default = "Melee",
     Callback = function(value)
@@ -850,6 +934,12 @@ Tabs.Config:AddDropdown("WeaponDropdown", {
     end
 })
 
+task.spawn(function()
+    while task.wait(0.3) do
+        pcall(function()
+            local plr = game.Players.LocalPlayer
+            local char = plr.Character
+            if not char then return end
 _G.ChooseWP = _G.ChooseWP or "Melee"
 
 function _G.ChooseWP2()
@@ -858,22 +948,1474 @@ function _G.ChooseWP2()
         local char = plr.Character
         if not char then return end
 
+            -- 1. Verifica se já tem alguma Tool (item/arma/fruta) equipada na mão
+            local equipped = char:FindFirstChildOfClass("Tool")
         local equipped = char:FindFirstChildOfClass("Tool")
         if equipped and equipped.ToolTip == "Blox Fruit" then return end
 
+            -- 2. SE TIVER QUALQUER COISA NA MÃO E FOR UMA FRUTA (física ou poder), PARA O SCRIPT AQUI
+            if equipped and equipped.ToolTip == "Blox Fruit" then 
+                return 
+            end
         if not _G.ChooseWP then return end
 
+            -- Se o dropdown estiver em "---", também não faz nada
+            if _G.ChooseWP == "---" or not _G.ChooseWP then return end
         local tooltip = (_G.ChooseWP == "Fruit") and "Blox Fruit" or _G.ChooseWP
 
+            -- 3. Define o tipo de ToolTip que estamos procurando na Backpack
+            local tooltip = (_G.ChooseWP == "Fruit") and "Blox Fruit" or _G.ChooseWP
+            
+            -- 4. Procura e equipa a arma selecionada
+            for _, v in pairs(plr.Backpack:GetChildren()) do
+                if v.ToolTip == tooltip then
+                    _G.SelectWeapon = v.Name
+                    char.Humanoid:EquipTool(v)
+                    break -- Para o loop assim que achar e equipar a arma certa
+                end
         for _, v in pairs(plr.Backpack:GetChildren()) do
             if v.ToolTip == tooltip then
                 _G.SelectWeapon = v.Name
                 char.Humanoid:EquipTool(v)
                 break
             end
+        end)
+    end
+end)
         end
     end)
 end
+
+Tabs.ShopTab:AddParagraph({
+    Title = "Fighting Style",
+    Content = "Compre estilos de luta abaixo"
+})
+
+-- ==============================================================
+-- AUTO BUY ESTILOS DE LUTA - POSIÇÕES FIXAS OFICIAIS (COELHO HUB)
+-- ==============================================================
+
+-- Cache de Serviços e Configurações Globais
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local plr = Players.LocalPlayer
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Shop = _G.Settings.Shop or {}
+
+-- BANCO DE DADOS DE CFRAMES (Atualizado com a sua coordenada exata do Shafi)
+local NPC_POSITIONS = {
+    ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939),
+    ["Electro"]        = CFrame.new(-4994.93018, 314.557556, -3198.11987),
+    ["WaterKungFu"]    = CFrame.new(-5019.89941, 371.354584, -3190.61987),
+    ["DragonBreath"]   = CFrame.new(-4980.09473, 371.354584, -3206.14917), -- Sabi / Daermon
+    ["Superhuman"]     = CFrame.new(-5005.6626,  374.42334,  -3195.02759),
+    ["DeathStep"]      = CFrame.new(-5003.19482, 318.014496, -3222.10449),
+    ["SharkmanKarate"] = CFrame.new(-4968.7417,  317.886932, -3219.92822),
+    ["ElectricClaw"]   = CFrame.new(-10375.2676, 334.764008, -10132.6826),
+    ["DragonTalon"]    = CFrame.new(5657.89844,  1214.87695, 863.23822),
+    ["Godhuman"]       = CFrame.new(-13771.4043, 337.733002, -9876.94336),
+    ["SanguineArt"]    = CFrame.new(-16511.1152, 26.8119965, -189.201233) -- Coordenada real do Shafi aplicada!
+}
+
+-- Função de movimentação por VOO CONTROLADO COM BARREIRA DE ALTURA (Y)
+local function VoarParaPosicao(settingKey)
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local cframeAlvo = NPC_POSITIONS[settingKey]
+
+    if hrp and cframeAlvo then
+        local velocidade = _G.VelocidadeFarmBone or 250
+        local LIMITE_Y = 20 -- Defina aqui a altura mínima que o player pode alcançar (Impede Y negativo)
+        
+        if shouldTween ~= nil then shouldTween = true end
+        
+        -- Garante que a gravidade ou forças físicas não puxem o boneco para baixo
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        -- CÁLCULO DO VOO SUAVE:
+        local distancia = (hrp.Position - cframeAlvo.Position).Magnitude
+        local deltaTime = task.wait() 
+        local passo = (velocidade * deltaTime) / distancia
+        
+        if passo >= 1 then
+            -- Se o alvo final tiver Y menor que o limite, barra ele no limite seguro
+            local posFinal = cframeAlvo.Position
+            if posFinal.Y < LIMITE_Y then
+                posFinal = Vector3.new(posFinal.X, LIMITE_Y, posFinal.Z)
+            end
+            hrp.CFrame = CFrame.new(posFinal) * (cframeAlvo - cframeAlvo.Position)
+            return true
+        else
+            -- Calcula o próximo CFrame do movimento suave
+            local proximoCFrame = hrp.CFrame:Lerp(cframeAlvo, passo)
+            local novaPosicao = proximoCFrame.Position
+            
+            -- BARREIRA INVISÍVEL: Se a próxima posição for menor que o limite, força o Y para cima
+            if novaPosicao.Y < LIMITE_Y then
+                novaPosicao = Vector3.new(novaPosicao.X, LIMITE_Y, novaPosicao.Z)
+                -- Reconstrói o CFrame mantendo a rotação original, mas aplicando a trava no Y
+                proximoCFrame = CFrame.new(novaPosicao) * (proximoCFrame - proximoCFrame.Position)
+            end
+            
+            hrp.CFrame = proximoCFrame
+        end
+        
+        if distancia < 15 then
+            return true
+        end
+    end
+    return false
+end
+
+-- Função centralizada que roda o loop de voo e compra sem travar
+local function IniciarLoopEstilo(settingKey, buyCallback)
+    task.spawn(function()
+        -- Ativa o Noclip em segundo plano enquanto o toggle estiver ativo
+        local noclipConnection
+        noclipConnection = RunService.Stepped:Connect(function()
+            if not _G.Settings.Shop[settingKey] then
+                if noclipConnection then noclipConnection:Disconnect() end
+                return
+            end
+            if plr.Character then
+                for _, part in ipairs(plr.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then 
+                        part.CanCollide = false 
+                    end
+                end
+
+                -- CAMADA EXTRA DE SEGURANÇA NO NOCLIP:
+                -- Se por algum motivo externo (ataque, bug) o boneco cair abaixo do limite, joga ele pra cima na hora
+                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and hrp.Position.Y < 20 then
+                    hrp.CFrame = CFrame.new(hrp.Position.X, 20, hrp.Position.Z) * (hrp.CFrame - hrp.CFrame.Position)
+                end
+            end
+        end)
+
+        -- Loop principal focado em voar
+        while _G.Settings.Shop[settingKey] do
+            RunService.Heartbeat:Wait()
+            
+            local chegouNoNpc = VoarParaPosicao(settingKey)
+            
+            if chegouNoNpc then
+                task.spawn(function()
+                    pcall(buyCallback)
+                end)
+                task.wait(0.5)
+            end
+        end
+        
+        if shouldTween ~= nil then shouldTween = false end
+    end)
+end
+
+Tabs.ShopTab:AddToggle("ToggleBlackLeg", {
+    Title = "Auto Dark Step (Black Leg)",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DarkStep"] = Value
+        if Value then
+            IniciarLoopEstilo("DarkStep", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleElectro", {
+    Title = "Auto Electro",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Electro"] = Value
+        if Value then
+            IniciarLoopEstilo("Electro", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleFishman", {
+    Title = "Auto Water Kung Fu",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["WaterKungFu"] = Value
+        if Value then
+            IniciarLoopEstilo("WaterKungFu", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleDragonBreath", {
+    Title = "Auto Dragon Breath",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DragonBreath"] = Value
+        if Value then
+            IniciarLoopEstilo("DragonBreath", function()
+                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "1")
+                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSuperhuman", {
+    Title = "Auto Superhuman",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Superhuman"] = Value
+        if Value then
+            IniciarLoopEstilo("Superhuman", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleDeathStep", {
+    Title = "Auto Death Step",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DeathStep"] = Value
+        if Value then
+            IniciarLoopEstilo("DeathStep", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSharkman", {
+    Title = "Auto Sharkman Karate",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["SharkmanKarate"] = Value
+        if Value then
+            IniciarLoopEstilo("SharkmanKarate", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate", true)
+                replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleElectricClaw", {
+    Title = "Auto Electric Claw",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["ElectricClaw"] = Value
+        if Value then
+            IniciarLoopEstilo("ElectricClaw", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleDragonTalon", {
+    Title = "Auto Dragon Talon",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DragonTalon"] = Value
+        if Value then
+            IniciarLoopEstilo("DragonTalon", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleGodhuman", {
+    Title = "Auto Godhuman",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Godhuman"] = Value
+        if Value then
+            IniciarLoopEstilo("Godhuman", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSanguine", {
+    Title = "Auto Sanguine Art",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["SanguineArt"] = Value
+        if Value then
+            IniciarLoopEstilo("SanguineArt", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
+                replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddParagraph({
+    Title = "Abilities",
+    Content = "Compre habilidades abaixo"
+})
+
+Tabs.ShopTab:AddButton({
+    Title = "Skyjump [ 10,000 Beli ]",
+    Callback = function()
+        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Geppo") end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Buso Haki [ 25,000 Beli ]",
+    Callback = function()
+        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Buso") end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Observation Haki [ 750,000 Beli ]",
+    Callback = function()
+        pcall(function() replicated.Remotes.CommF_:InvokeServer("KenTalk", "Buy") end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Soru [ 100,000 Beli ]",
+    Callback = function()
+        pcall(function() replicated.Remotes.CommF_:InvokeServer("BuyHaki", "Soru") end)
+    end
+})
+
+Tabs.ShopTab:AddParagraph({
+    Title = "Misc",
+    Content = "Outros itens"
+})
+
+Tabs.ShopTab:AddButton({
+    Title = "Buy Refund Stat (2500F)",
+    Callback = function()
+        pcall(function()
+            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Refund", "1")
+            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Refund", "2")
+        end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Buy Reroll Race (3000F)",
+    Callback = function()
+        pcall(function()
+            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Reroll", "1")
+            replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "Reroll", "2")
+        end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Buy Draco",
+    Callback = function()
+        pcall(function()
+            local plr = game.Players.LocalPlayer
+            local char = plr.Character
+            _tp(CFrame.new(5814.42, 1208.32, 884.57))
+            repeat task.wait() until (char.HumanoidRootPart.Position - Vector3.new(5814.42, 1208.32, 884.57)).Magnitude < 1
+            game:GetService("ReplicatedStorage").Modules.Net:FindFirstChild("RF/InteractDragonQuest"):InvokeServer({
+                ["NPC"] = "Dragon Wizard",
+                ["Command"] = "DragonRace"
+            })
+        end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Buy Ghoul Race",
+    Callback = function()
+        pcall(function() replicated.Remotes.CommF_:InvokeServer("Ectoplasm", "Change", 4) end)
+    end
+})
+Tabs.ShopTab:AddButton({
+    Title = "Buy Cyborg Race (2500F)",
+    Callback = function()
+        pcall(function() replicated.Remotes.CommF_:InvokeServer("CyborgTrainer", "Buy") end)
+    end
+})
+
+Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
+    Title = "Auto Factory Raid",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFactory = Value
+        if Value then
+            task.spawn(function()
+                local FactoryPos = Vector3.new(430.98, 238.41, -433.16)
+                while _G.AutoFactory do
+                    pcall(function()
+                        local char = game.Players.LocalPlayer.Character
+                        if not char then return end
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if not hrp then return end
+
+                        _G.ChooseWP2()
+
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+
+                        local bv = Instance.new("BodyVelocity")
+                        if (FactoryPos - hrp.Position).Magnitude > 5 then
+                            bv.Velocity = (FactoryPos - hrp.Position).Unit * 200
+                            bv.Velocity = (FactoryPos - hrp.Position).Unit * _G.VelocidadeFarmBone
+                        else
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                        end
+                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        bv.Parent = hrp
+                        task.wait(0.05)
+                        bv:Destroy()
+                    end)
+                    task.wait(0.05)
+                end
+
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = true
+                        end
+                    end
+                end
+            end)
+        else
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- 1. Deixe a variável de controle no topo do script (fora da toggle e do loop)
+local Boud = false
+local Sec = 1 -- Defina o tempo em segundos aqui
+
+-- 2. O seu loop que executa a ação (ele fica rodando e checando a variável 'Boud')
+task.spawn(function()
+    while true do
+        task.wait(Sec)
+        if Boud then
+            pcall(function()
+                local I = { "HasBuso", "Buso" }
+                if game.Players.LocalPlayer.Character and not game.Players.LocalPlayer.Character:FindFirstChild(I[1]) then
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(I[2])
+                end
+            end)
+        end
+    end
+end)
+
+-- 3. A sua Toggle da UI (que controla o 'Boud')
+Tabs.Config:AddToggle("AutoBusoHaki", {
+    Title = "Auto turn Buso",
+    Default = true,
+    Callback = function(v)
+        Boud = v
+    end,
+})
+
+local ToggleFruit = Tabs.Fruit:AddToggle("ToggleGacha", {
+    Title = "Random fruit", 
+    Default = false,
+    Callback = function(Value)
+        _G.GachaAtivo = Value -- Usa uma variável global para controle
+
+        if _G.GachaAtivo then
+            -- Cria a thread para o loop não travar o resto do seu script
+            task.spawn(function()
+                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+                local args = {"Cousin", "Buy", "DLCBoxData"}
+
+                while _G.GachaAtivo do
+                    pcall(function()
+                        commF:InvokeServer(unpack(args))
+                    end)
+                    task.wait(1.0) -- Delay de segurança
+                end
+            end)
+        end
+    end
+})
+
+local ToggleAutoStore = Tabs.Fruit:AddToggle("AutoStoreFruit", {
+    Title = "Auto Store Fruit",
+    Description = "",
+    Default = false,
+    Callback = function(state)
+        _G.AutoStoreFruitAtivo = state
+    end
+})
+
+-- ==============================================================
+-- MOTOR ULTRA OTIMIZADO DE ARMAZENAMENTO (Padrão Coelho Hub)
+-- ==============================================================
+task.spawn(function()
+    local LocalPlayer = game.Players.LocalPlayer
+    local CommF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
+
+    while task.wait(0.5) do -- Meio segundo é perfeito para não floodar o servidor
+        if _G.AutoStoreFruitAtivo then
+            pcall(function()
+                local backpack = LocalPlayer.Backpack
+                if not backpack then return end
+
+                for _, item in pairs(backpack:GetChildren()) do
+                    -- Detecta se o item na mochila é uma fruta
+                    if item:IsA("Tool") and (item.Name:find("Fruit") or item:FindFirstChild("FruitScript")) then
+                        
+                        -- Extrai o nome real da fruta (Ex: "Bomb Fruit" vira "Bomb")
+                        local rawName = item.Name:gsub(" Fruit", ""):gsub("Fruta ", "")
+                        
+                        -- Monta o argumento exato que o servidor do Blox Fruits exige ("Bomb-Bomb")
+                        local fruitID = rawName .. "-" .. rawName
+                        
+                        print("Coelho Hub guardando: " .. fruitID)
+                        
+                        -- Dispara o Remote original passando a ID formatada e o objeto real
+                        CommF:InvokeServer("StoreFruit", fruitID, item)
+                        
+                        task.wait(0.2) -- Pequena pausa entre frutas para evitar anticheat
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ==============================================================
+-- TOGGLE NAS CONFIGS - COM PRECISÃO CIRÚRGICA
+-- ==============================================================
+
+local ToggleAntiNotif = Tabs.Config:AddToggle("AntiNotificationClear", {
+    Title = "Anti Qualquer Notificação",
+    Description = "Limpa spams de aviso e erros no meio da tela. Seguro para o HUD!",
+    Default = false,
+    Callback = function(state)
+        _G.AntiNotificacaoGeral = state
+    end
+})
+
+-- ==============================================================
+-- O MATADOR DE SPAM (SÓ TEXTO CHATO)
+-- ==============================================================
+task.spawn(function()
+    local LocalPlayer = game.Players.LocalPlayer
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+    local function limparElemento(v)
+        if not _G.AntiNotificacaoGeral then return end
+        
+        -- 1. Se for o container de notificações flutuantes do Blox Fruits
+        if v.Name == "NotificationElement" or v.Name == "Notifications" then
+            v:Destroy()
+        
+        -- 2. Se for uma label de texto solta na interface principal que não seja do chat/HUD
+        elseif v:IsA("TextLabel") and v.Visible then
+            -- Só mata se o texto for aviso de armazenamento, erro ou texto solto no meio da tela
+            if v.Text:find("store") or v.Text:find("only") or v.Text:find("limit") or v.Parent.Name == "Labels" then
+                v:Destroy()
+            end
+        end
+    end
+
+    -- Loop de verificação contínua bem leve (Heartbeat)
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if _G.AntiNotificacaoGeral then
+            pcall(function()
+                -- Limpa a pasta principal de notificações do jogo
+                local notifContainer = playerGui:FindFirstChild("Notifications")
+                if notifContainer then
+                    notifContainer:ClearAllChildren()
+                end
+                
+                -- Limpa as labels vermelhas soltas na Main sem quebrar o layout
+                local mainGui = playerGui:FindFirstChild("Main")
+                if mainGui then
+                    for _, child in pairs(mainGui:GetChildren()) do
+                        if child:IsA("TextLabel") and child.Visible then
+                            -- Mata se for o texto de erro clássico do servidor
+                            if child.Text:find("only store") or child.Text:find("Error") then
+                                child:Destroy()
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+
+    -- Escuta para novas ameaças de texto
+    playerGui.DescendantAdded:Connect(function(descendant)
+        pcall(function()
+            if _G.AntiNotificacaoGeral then
+                limparElemento(descendant)
+            end
+        end)
+    end)
+end)
+
+-- ==============================================================
+-- SLIDER DE VELOCIDADE DO FARM NA ABA CONFIG
+-- ==============================================================
+_G.VelocidadeFarmBone = 350 -- Valor padrão inicial (equilibrado e seguro)
+
+Tabs.Config:AddSlider("SliderVelocidadeBone", {
+    Title = "Velocidade",
+    Description = "Ajusta a velocidade do Tween entre os spots",
+    Min = 100,
+    Max = 500,
+    Default = 350,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.VelocidadeFarmBone = Value
+    end
+})
+
+
+-- ==============================================================
+-- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4)
+-- ==============================================================
+
+-- 1. O Botão para a sua Tab Main
+local ToggleRaceAbility = Tabs.Config:AddToggle("AutoRaceAbilityToggle", {
+    Title = "Auto Activate v3",
+    Description = "",
+    Default = false,
+    Callback = function(Value)
+        _G.RaceClickAutov3 = Value
+    end
+})
+
+-- 2. O Motor que roda em segundo plano (Sem travar o clique)
+task.spawn(function()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    -- Busca o remote CommE de forma segura
+    local CommE = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommE")
+
+    local tempoEsperaMaximo = 30 -- Tempo de Cooldown da habilidade
+    local tempoPassado = 0
+
+    while task.wait(0.2) do
+        if _G.RaceClickAutov3 then
+            pcall(function()
+                -- Dispara o remote oficial do jogo para ativar a raça
+                CommE:FireServer("ActivateAbility")
+                
+                -- LOOP DE ESPERA INTELIGENTE:
+                -- Em vez de dar um wait(30) seco, ele checa a cada 1 segundo se você desligou o botão
+                tempoPassado = 0
+                repeat
+                    task.wait(1)
+                    tempoPassado = tempoPassado + 1
+                until not _G.RaceClickAutov3 or tempoPassado >= tempoEsperaMaximo
+            end)
+        end
+    end
+end)
+
+-- ==============================================================
+-- BOTÃO DE RESGATAR TODOS OS CÓDIGOS (ABA CONFIG / MISC)
+-- ==============================================================
+Tabs.ShopTab:AddButton({
+    Title = "Redeem All Codes",
+    Callback = function()
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+        -- Lista de códigos atualizada e limpa de duplicatas inúteis
+        local Codes = {
+            "REWARDMAN", "NEWTROLL", "KITT_RESET", "Sub2CaptainMaui", "DEVSCOOKING",
+            "SUB2GAMERROBOT_RESET1", "sub2gamerrobot_exp1", "Sub2OfficialNoobie",
+            "THEGREATACE", "SUB2NOOBMASTER123", "SUB2DAIGROCK", "AXIORE",
+            "TANTAIGAMING", "STRAWHATMAINE", "BLUXXY", "FUDD10", "FUDD10_V2",
+            "BIGNREWS", "SUB2UNCLEKIZARU", "ENYU_IS_PRO", "MAGICBUS", "JCWK",
+            "STARCODEHEO", "KITTGAMING", "CHANDLER"
+        }
+
+        -- Caminho oficial e atualizado do Remote de códigos do Blox Fruits
+        local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+
+        if not CommF then
+            -- Fallback de aviso caso a biblioteca de notificação não esteja indexada como 'bearlib'
+            print("Coelho Hub: Erro - Sistema de Remotes não encontrado.")
+            return
+        end
+
+        print("Coelho Hub: Iniciando resgate automatizado de códigos...")
+
+        for _, code in ipairs(Codes) do
+            pcall(function()
+                -- O Blox Fruits usa InvokeServer no CommF_ passando o argumento "RedeemCode"
+                CommF:InvokeServer("RedeemCode", code)
+            end)
+            -- Delay de proteção de 0.5 segundos por código para o servidor processar sem dar lag ou kick
+            task.wait(0.5) 
+        end
+
+        print("Coelho Hub: Todos os códigos disponíveis foram processados!")
+
+        -- Se sua biblioteca de UI for do estilo Rayfield/Orion, você pode descomentar a linha abaixo para mandar um aviso visual:
+        -- game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Coelho Hub", Text = "Todos os códigos foram processados!", Duration = 5})
+    end
+})
+
+-- =============================================
+-- TOGGLE: Cole na sua aba Main
+-- =============================================
+
+-- ==============================================================
+-- AUTO FARM ELITE HUNTER (LÓGICA UNIVERSAL DE 5 STUDS ACIMA)
+-- ==============================================================
+
+-- ==============================================================
+-- MOTOR ELITE HUNTER - TRAVA TOTAL SE NÃO EXISTIR BOSS (VISUAL LIMPO)
+-- ==============================================================
+
+_G.FarmEliteHunt = false
+_G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350
+
+-- 1. FUNÇÃO UNIVERSAL DE MOVIMENTO (5 STUDS ACIMA)
+local function IrAteNPCSeguro(nomeDoNPC)
+    local Players = game:GetService("Players")
+    local Workspace = game:GetService("Workspace")
+    local TweenService = game:GetService("TweenService")
+
+    local plr = Players.LocalPlayer
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    local npcAlvo = Workspace:FindFirstChild("Enemies") and Workspace.Enemies:FindFirstChild(nomeDoNPC) or Workspace:FindFirstChild(nomeDoNPC)
+
+    if npcAlvo and npcAlvo:FindFirstChild("Humanoid") and npcAlvo.Humanoid.Health > 0 and npcAlvo:FindFirstChild("HumanoidRootPart") then
+        local destinoSeguro = npcAlvo.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+        local distancia = (hrp.Position - destinoSeguro.Position).Magnitude
+        local velocidade = _G.VelocidadeFarmBone or 350
+        local tempo = math.max(distancia / velocidade, 0.05)
+
+        local tween = TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destinoSeguro})
+        tween:Play()
+
+        if distancia < 12 then
+            tween:Cancel()
+            hrp.CFrame = destinoSeguro
+        end
+        return true
+    end
+    return false
+end
+
+-- 2. O BOTÃO DA INTERFACE (SEM EMOJIS NA DESCRIÇÃO)
+local ToggleEliteHunt = Tabs.Main:AddToggle("EliteHuntToggle", {
+    Title = "Auto Farm Elite Hunter",
+    Description = "Killed: 0",
+    Default = false,
+    Callback = function(Value)
+        _G.FarmEliteHunt = Value
+        if not Value then
+            local char = game.Players.LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                game:GetService("TweenService"):Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
+            end
+            print("Coelho Hub: Auto Elite Hunter desativado.")
+        end
+    end
+})
+
+-- 3. LOOP DO NOCLIP INTELIGENTE (SÓ ATIVA SE O BOSS REALMENTE EXISTIR)
+local _G_StatusBossDisponivel = false
+game:GetService("RunService").Stepped:Connect(function()
+    if _G.FarmEliteHunt and _G_StatusBossDisponivel and game.Players.LocalPlayer.Character then
+        for _, part in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 4. MOTOR PRINCIPAL BLINDADO
+task.spawn(function()
+    local plr = game:GetService("Players").LocalPlayer
+    local replicated = game:GetService("ReplicatedStorage")
+    local workspace = game:GetService("Workspace")
+    local TweenService = game:GetService("TweenService")
+
+    while task.wait(0.5) do
+        if _G.FarmEliteHunt then
+            local eliteFound = false
+            
+            -- ESCANEAMENTO REAL DE DISPONIBILIDADE
+            pcall(function()
+                local progress = replicated.Remotes.CommF_:InvokeServer("EliteHunter", "Progress")
+                
+                -- Removeu os emojis daqui! Como solicitado com base na image_fd833d.jpg
+                ToggleEliteHunt:SetDesc("Killed: " .. tostring(progress))
+                
+                -- Checa se o Boss físico existe em algum canto
+                local bossNoReplicated = replicated:FindFirstChild("Diablo") or replicated:FindFirstChild("Deandre") or replicated:FindFirstChild("Urban")
+                local bossNoWorkspace = workspace:FindFirstChild("Enemies") and (workspace.Enemies:FindFirstChild("Diablo") or workspace.Enemies:FindFirstChild("Deandre") or workspace.Enemies:FindFirstChild("Urban"))
+                
+                if bossNoReplicated or bossNoWorkspace then
+                    eliteFound = true
+                end
+            end)
+
+            _G_StatusBossDisponivel = eliteFound
+
+            -- [TRAVA DE SEGURANÇA ABSOLUTA]: Se não encontrou o boss, o player FICA CONGELADO no lugar
+            if not eliteFound then
+                pcall(function()
+                    local char = plr.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        -- Força o CFrame a travar na posição atual imediatamente e cancela voos anteriores
+                        TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
+                    end
+                end)
+                -- Aborta a execução do frame atual. O jogador não vai sair do lugar de jeito nenhum.
+                continue 
+                continue
+            end
+
+            -- ==============================================================
+            -- O CÓDIGO ABAIXO SÓ EXISTE SE O BOSS ESTIVER VIVO NO SERVIDOR
+            -- ==============================================================
+            pcall(function()
+                local char = plr.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                local questUI = plr.PlayerGui.Main.Quest
+
+                -- Se já estiver com a Quest aberta na tela
+                if questUI and questUI.Visible == true then
+                    local titulo = questUI.Container.QuestTitle.Title.Text
+                    if string.find(titulo, "Diablo") or string.find(titulo, "Urban") or string.find(titulo, "Deandre") then
+                        
+                        -- Voa para o boss e para 5 studs acima
+                        _G.ChooseWP2()
+                        local cacando = IrAteNPCSeguro("Diablo") or IrAteNPCSeguro("Urban") or IrAteNPCSeguro("Deandre")
+                        
+                        if not cacando then
+                            -- Força o tracking caso ele ainda esteja carregando na memória do Replicated
+                            for _, v in pairs(replicated:GetChildren()) do
+                                if string.find(v.Name, "Diablo") or string.find(v.Name, "Urban") or string.find(v.Name, "Deandre") then
+                                    if v:FindFirstChild("HumanoidRootPart") then
+                                        _G.ChooseWP2()
+                                        local destinoSeguro = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                                        local distancia = (hrp.Position - destinoSeguro.Position).Magnitude
+                                        local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
+                                        TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destinoSeguro}):Play()
+                                    end
+                                end
+                            end
+                        end
+                    end
+                else
+                    -- O Boss tá no servidor mas você está sem a quest? Voa até o NPC pegar
+                    local coordenadaNPCSegura = CFrame.new(-5417.66, 313.06 + 5, -2822.91)
+                    local distancia = (hrp.Position - coordenadaNPCSegura.Position).Magnitude
+
+                    if distancia > 15 then
+                        local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.1)
+                        TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = coordenadaNPCSegura}):Play()
+                    else
+                        TweenService:Create(hrp, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {CFrame = coordenadaNPCSegura}):Play()
+                        pcall(function()
+                            local remote = replicated:WaitForChild("Remotes"):WaitForChild("CommF_")
+                            remote:InvokeServer("EliteHunter")
+                            task.wait(0.3)
+                            remote:InvokeServer("EliteHunter", "Progress")
+                        end)
+                        task.wait(1.5)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Declaração da imagem
+local BannerCreditos = nil
+
+local function criarImagem()
+    if BannerCreditos then return end
+
+    local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("Fluent")
+    if not screenGui then return end
+
+    BannerCreditos = Instance.new("ImageLabel")
+    BannerCreditos.Image = "rbxassetid://94453919385793"
+    BannerCreditos.Size = UDim2.new(0, 200, 0, 200)
+    BannerCreditos.BackgroundTransparency = 1
+    BannerCreditos.ZIndex = 999
+    BannerCreditos.Parent = screenGui
+end
+
+local function destruirImagem()
+    if BannerCreditos then
+        BannerCreditos:Destroy()
+        BannerCreditos = nil
+    end
+end
+
+-- Posição da imagem acompanha o parágrafo de texto
+task.spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("Fluent")
+            if not screenGui then return end
+
+            -- Verifica se a aba Creditos está visível
+            local creditosAberto = false
+            for _, v in ipairs(screenGui:GetDescendants()) do
+                if v:IsA("Frame") and v.Visible and v.Name:lower():find("credito") then
+                    creditosAberto = true
+                    break
+                end
+            end
+
+            if creditosAberto then
+                criarImagem()
+
+                -- Acompanha a posição do parágrafo
+                if BannerCreditos then
+                    for _, v in ipairs(screenGui:GetDescendants()) do
+                        if v:IsA("TextLabel") and v.Text:find("Visite nosso server") then
+                            local pos = v.AbsolutePosition
+                            BannerCreditos.Position = UDim2.new(0, pos.X, 0, pos.Y - 210)
+                            break
+                        end
+                    end
+                end
+            else
+                destruirImagem()
+            end
+        end)
+    end
+end)
+
+-- Creditos
+Tabs.Creditos:AddParagraph({
+    Title = "Discord",
+    Content = "Visite nosso server"
+})
+
+Tabs.Creditos:AddButton({
+    Title = "Copiar Link do Server",
+    Description = "",
+    Callback = function()
+        setclipboard("https://discord.gg/QH4vbmq29")
+        setclipboard("https://discord.gg/tdSwHMhqZ")
+        print("Coelho Hub: Link copiado!")
+    end
+})
+
+-- ==============================================================
+-- AUTO FARM CHEST - VERSÃO ULTRA EFICIENTE (COELHO HUB)
+-- ==============================================================
+
+-- Cache de Serviços e Variáveis Globais (Otimização de Memória)
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Farm = _G.Settings.Farm or {}
+_G.Settings.Farm["Auto Farm Chest Tween"] = false
+_G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350 
+
+-- 1. FUNÇÃO TWEENPLAYER OPTIMIZADA
+local function TweenPlayer(TargetCFrame)
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
+
+    if distancia < 5 then
+        hrp.CFrame = TargetCFrame
+        return
+    end
+
+    local velocidadeAtual = _G.VelocidadeFarmBone
+    if velocidadeAtual <= 0 then velocidadeAtual = 1 end 
+
+    local tempoCalculado = distancia / velocidadeAtual
+    local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
+    tween:Play()
+
+    -- Aguarda o término do movimento de forma eficiente
+    repeat 
+        RunService.Heartbeat:Wait() 
+    until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Chest Tween"]
+
+    if not _G.Settings.Farm["Auto Farm Chest Tween"] then
+        tween:Cancel()
+    end
+end
+
+-- ==============================================================
+-- AUTO FARM CHEST - MOTOR ULTRA INSTANTÂNEO (COELHO HUB)
+-- ==============================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Farm = _G.Settings.Farm or {}
+_G.Settings.Farm["Auto Farm Chest Tween"] = false
+_G.ChestHopCount = _G.ChestHopCount or 0
+
+local plr = Players.LocalPlayer
+
+-- FUNÇÃO DE SEGURANÇA: DETECTA SE VOCÊ PEGOU ITEM RARO DE BAÚ
+local function _isSpecialChestItem()
+	local character = plr.Character
+	local backpack = plr:FindFirstChild("Backpack")
+
+	if character and backpack then
+		-- Verifica se o Fist of Darkness ou Gods Chalice entraram no seu inventário
+		if character:FindFirstChild("Fist of Darkness") or backpack:FindFirstChild("Fist of Darkness") or
+		   character:FindFirstChild("Gods Chalice") or backpack:FindFirstChild("Gods Chalice") then
+			return true
+		end
+	end
+	return false
+end
+
+-- 2. O BOTÃO DA INTERFACE (MANTIDO NA MAIN)
+Tabs.Main:AddToggle("ToggleAutoChestOriginal", {
+	Title = "Auto Farm Chest",
+	Description = "",
+	Default = false,
+	Callback = function(Value)
+		_G.Settings.Farm["Auto Farm Chest Tween"] = Value
+		if not Value then
+			local char = plr.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
+			end
+			shouldTween = false
+		end
+	end
+})
+
+-- 3. LOOP DO NOCLIP BRUTO DE ALTA PERFORMANCE
+RunService.Stepped:Connect(function()
+	if _G.Settings.Farm["Auto Farm Chest Tween"] and plr.Character then
+		for _, part in ipairs(plr.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+-- 4. MOTOR PRINCIPAL ULTRA RÁPIDO COM BYPASS INTEGRADO
+task.spawn(function()
+	local chestModels = Workspace:WaitForChild("ChestModels", 5)
+
+	while true do
+		task.wait(0) -- Loop de frame zero para máxima velocidade
+		
+		if _G.Settings.Farm["Auto Farm Chest Tween"] then
+			pcall(function()
+				local char = plr.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if not hrp then return end
+
+				-- SISTEMA ANTI-PERDA DE ITEM ESPECIAL
+				if _isSpecialChestItem() then
+					_G.Settings.Farm["Auto Farm Chest Tween"] = false
+					shouldTween = false
+					StarterGui:SetCore("SendNotification", {
+						Title = "Coelho Hub",
+						Text = "Item especial encontrado! Farm de Chest parado por segurança.",
+						Duration = 6
+					})
+					return
+				end
+
+				chestModels = Workspace:FindFirstChild("ChestModels")
+				if chestModels then
+					local chests = chestModels:GetChildren()
+					
+					if #chests > 0 then
+						for i = 1, #chests do
+							if not _G.Settings.Farm["Auto Farm Chest Tween"] or _isSpecialChestItem() then break end
+							
+							local v = chests[i]
+							if v and v.Parent and v.Name:find("Chest") and v:FindFirstChild("RootPart") then
+								local root = v.RootPart
+								
+								-- LOOP RÍGIDO: Prende e executa o bypass de movimento do Eclipse no baú atual
+								repeat
+									RunService.Heartbeat:Wait()
+									
+									-- Teleporta e faz a oscilação de 2 studs para registrar a colisão nativa
+									hrp.CFrame = root.CFrame * CFrame.new(0, 2, 0)
+									task.wait(0.02)
+									hrp.CFrame = root.CFrame * CFrame.new(0, -2, 0)
+									
+									-- Dispara o toque via executor por segurança dupla
+									firetouchinterest(hrp, root, 0)
+									firetouchinterest(hrp, root, 1)
+									
+								until not _G.Settings.Farm["Auto Farm Chest Tween"] or not v.Parent or _isSpecialChestItem()
+								
+								_G.ChestHopCount = _G.ChestHopCount + 1
+							end
+						end
+					else
+						-- Se a pasta estiver vazia, espera um pouco para poupar a CPU
+						task.wait(0.1)
+					end
+				else
+					task.wait(0.3)
+				end
+			end)
+		else
+			task.wait(0.3) -- Delay econômico quando o botão está desligado
+		end
+	end
+end)
+
+-- ==============================================================
+-- AUTO FARM FRUIT - VERSÃO ULTRA EFICIENTE (COELHO HUB)
+-- ==============================================================
+
+-- Cache de Serviços e Variáveis Globais (Otimização de Memória)
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Farm = _G.Settings.Farm or {}
+_G.Settings.Farm["Auto Farm Fruit Tween"] = false
+_G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350 
+
+-- 1. FUNÇÃO TWEENPLAYER OPTIMIZADA (Idêntica ao seu padrão de Baús)
+local function TweenPlayer(TargetCFrame)
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
+
+    if distancia < 5 then
+        hrp.CFrame = TargetCFrame
+        return
+    end
+
+    local velocidadeAtual = _G.VelocidadeFarmBone
+    if velocidadeAtual <= 0 then velocidadeAtual = 1 end 
+
+    local tempoCalculado = distancia / velocidadeAtual
+    local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
+    tween:Play()
+
+    -- Aguarda o término do movimento de forma eficiente
+    repeat 
+        RunService.Heartbeat:Wait() 
+    until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Fruit Tween"]
+
+    if not _G.Settings.Farm["Auto Farm Fruit Tween"] then
+        tween:Cancel()
+    end
+end
+
+-- 2. O BOTÃO DA INTERFACE
+Tabs.Fruit:AddToggle("ToggleAutoFruitOriginal", {
+    Title = "Auto colect Fruit",
+    Description = "",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Farm["Auto Farm Fruit Tween"] = Value
+        if not Value then
+            local char = plr.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
+            end
+        end
+    end
+})
+
+-- 3. LOOP DO NOCLIP BRUTO DE ALTA PERFORMANCE
+RunService.Stepped:Connect(function()
+    if _G.Settings.Farm["Auto Farm Fruit Tween"] and plr.Character then
+        for _, part in ipairs(plr.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 4. MOTOR PRINCIPAL - VAI ATÉ A FRUTA E LIMPA O SERVER
+task.spawn(function()
+    while true do
+        if _G.Settings.Farm["Auto Farm Fruit Tween"] then
+            local items = Workspace:GetChildren()
+            local frutaEncontradaNoTurno = false
+
+            -- Varre o Workspace usando o seu loop numérico indexado de alta performance
+            for i = 1, #items do
+                if not _G.Settings.Farm["Auto Farm Fruit Tween"] then break end
+
+                local v = items[i]
+                local handle = v and v:FindFirstChild("Handle")
+
+                -- Se encontrar uma fruta no mapa, vai até ela (Tween) por ordem de aparição
+                if handle and v.Name:find("Fruit") then
+                    frutaEncontradaNoTurno = true
+
+                    -- Fica preso na fruta atual indo até ela e pegando até que ela suma do mapa
+                    repeat
+                        RunService.Heartbeat:Wait()
+                        TweenPlayer(handle.CFrame)
+
+                        local char = plr.Character
+                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+                        if hrp and handle then
+                            -- Força a coleta por toque físico direto na fruta
+                            firetouchinterest(hrp, handle, 0)
+                            firetouchinterest(hrp, handle, 1)
+                        end
+                    -- Só passa para a próxima fruta da lista quando a atual sumir (.Parent virar nil)
+                    until not _G.Settings.Farm["Auto Farm Fruit Tween"] or not v.Parent
+                end
+            end
+
+            -- Se varreu o servidor inteiro e não achou mais nenhuma fruta, espera antes de checar de novo
+            if not frutaEncontradaNoTurno then
+                task.wait(1) -- Delay inteligente para economizar CPU quando o server estiver limpo
+            end
+        else
+            task.wait(0.5) -- Delay padrão quando o botão está desligado
+        end
+    end
+end)
+
+
+_G.Test = false
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local CFrameEspera = CFrame.new(-9502.07227, 501.75415, 6012.94678, 0.0197974183, 0.000531507714, 0.999803841, 0.00015926265, 0.999999821, -0.000534765481, -0.99980402, 0.000169818391, 0.0197973307)
+
+local Sea3Ids = {
+    [7449423635] = true,
+    [100117331123089] = true,
+}
+
+local function getRandomNPC()
+    local mobReborn = workspace.Enemies["Reborn Skeleton"]
+    local mobIndex8 = workspace.Enemies:GetChildren()[8]
+    local mobIndex9 = workspace.Enemies:GetChildren()[9]
+    local mobIndex10 = workspace.Enemies:GetChildren()[10]
+    local mobIndex12 = workspace.Enemies:GetChildren()[12]
+    local mobIndex13 = workspace.Enemies:GetChildren()[13]
+    local mobIndex19 = workspace.Enemies:GetChildren()[19]
+
+    local listaNPCs = {
+        mobReborn, mobIndex8, mobIndex9, mobIndex10, mobIndex12, mobIndex13, mobIndex19
+    }
+local indexList = {3, 4, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 22}
+
+local function getNPCs()
+    local vivos = {}
+    for _, mob in ipairs(listaNPCs) do
+    local enemies = workspace.Enemies
+
+    local namedMobs = {"Reborn Skeleton", "Posessed Mummy", "Living Zombie"}
+    for _, name in ipairs(namedMobs) do
+        local mob = enemies:FindFirstChild(name)
+        if mob then
+            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
+                table.insert(vivos, mob)
+            end
+        end
+    end
+
+    for _, index in ipairs(indexList) do
+        local mob = enemies:GetChildren()[index]
+        if mob then
+            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
+                table.insert(vivos, mob)
+            end
+        end
+    end
+
+    if #vivos == 0 then return nil end
+    return vivos[math.random(1, #vivos)]
+    return vivos
+end
+
+local function voarAte(hrp, posicaoAlvo)
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    local duracao = distancia / velocidade
+    local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(posicaoAlvo)})
+    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+Tabs.Main:AddToggle("Test", {
+    Title = "Farm bone",
+    Title = "Farm Bone",
+    Default = false,
+    Callback = function(Value)
+        _G.Test = Value
+
+        if Value then
+            task.spawn(function()
+                if not Sea3Ids[game.PlaceId] then
+                    _G.Test = false
+                    return
+                end
+
+                local character = LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                voarAte(hrp, CFrameEspera.Position)
+
+                while _G.Test do
+                    pcall(function()
+                        character = LocalPlayer.Character
+                        hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then return end
+
+                        local inimigoAtual = getRandomNPC()
+                        local lista = getNPCs()
+
+                        if not inimigoAtual then
+                            while _G.Test and not getRandomNPC() do
+                                task.wait(0.5)
+                            end
+                        if #lista == 0 then
+                            task.wait(0.5)
+                            return
+                        end
+
+                        local mobHrp = inimigoAtual:FindFirstChild("HumanoidRootPart")
+                        local mobHumanoid = inimigoAtual:FindFirstChildOfClass("Humanoid")
+
+                        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
+                            _G.ChooseWP2()
+                            voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
+                        for _, inimigo in ipairs(lista) do
+                            if not _G.Test then break end
+
+                            while _G.Test and inimigoAtual.Parent == workspace.Enemies and mobHumanoid and mobHumanoid.Health > 0 do
+                                character = LocalPlayer.Character
+                                hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                if not hrp then break end
+                            local mobHrp = inimigo:FindFirstChild("HumanoidRootPart")
+                            local mobHumanoid = inimigo:FindFirstChildOfClass("Humanoid")
+
+                            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
+                                _G.ChooseWP2()
+                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
+
+                                while _G.Test and inimigo.Parent and mobHumanoid and mobHumanoid.Health > 0 do
+                                    character = LocalPlayer.Character
+                                    hrp = character and character:FindFirstChild("HumanoidRootPart")
+                                    if not hrp then break end
+                                    _G.ChooseWP2()
+                                    voarAte(hrp, mobHrp.Position + Vector3.new(0, 10, 0))
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+})
+
+
+_G.TeleportKitsune = false
+
+local TweenService = game:GetService("TweenService")
+
+local function voarAte(hrp, posicaoAlvo)
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    if distancia < 2 then return end
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    local duracao = distancia / velocidade
+    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
+    tween:Play()
+    local timeout = tick() + duracao + 1
+    repeat
+        task.wait(math.random(1, 3) / 10)
+    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.TeleportKitsune
+end
+
+Tabs.Stack:AddToggle("TeleportKitsune", {
+    Title = "Teleport Kitsune Island",
+    Default = false,
+    Callback = function(Value)
+        _G.TeleportKitsune = Value
+
+        if Value then
+            task.spawn(function()
+                local character = game.Players.LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                local destino = workspace._WorldOrigin.Locations["Kitsune Island"]
+                if not destino then return end
+
+                -- cooldown aleatório antes de começar o voo
+                task.wait(math.random(5, 15) / 10)
+
+                _G.ChooseWP2()
+                voarAte(hrp, destino.Position)
+
+                _G.TeleportKitsune = false
+            end)
+        end
+    end
+})
+
 
 Tabs.ShopTab:AddParagraph({
     Title = "Fighting Style",
@@ -1234,6 +2776,7 @@ local SeaDois = {
     [996949360] = true,
 }
 
+
 Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
     Title = "Auto Factory Raid",
     Default = false,
@@ -1287,1418 +2830,6 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
                     end
                 end
             end
-        end
-    end
-})
-
--- 1. Deixe a variável de controle no topo do script (fora da toggle e do loop)
-local Boud = false
-local Sec = 1 -- Defina o tempo em segundos aqui
-
--- 2. O seu loop que executa a ação (ele fica rodando e checando a variável 'Boud')
-task.spawn(function()
-    while true do
-        task.wait(Sec)
-        if Boud then
-            pcall(function()
-                local I = { "HasBuso", "Buso" }
-                if game.Players.LocalPlayer.Character and not game.Players.LocalPlayer.Character:FindFirstChild(I[1]) then
-                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(I[2])
-                end
-            end)
-        end
-    end
-end)
-
--- 3. A sua Toggle da UI (que controla o 'Boud')
-Tabs.Config:AddToggle("AutoBusoHaki", {
-    Title = "Auto turn Buso",
-    Default = true,
-    Callback = function(v)
-        Boud = v
-    end,
-})
-
-local ToggleFruit = Tabs.Fruit:AddToggle("ToggleGacha", {
-    Title = "Random fruit", 
-    Default = false,
-    Callback = function(Value)
-        _G.GachaAtivo = Value -- Usa uma variável global para controle
-
-        if _G.GachaAtivo then
-            -- Cria a thread para o loop não travar o resto do seu script
-            task.spawn(function()
-                local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
-                local args = {"Cousin", "Buy", "DLCBoxData"}
-
-                while _G.GachaAtivo do
-                    pcall(function()
-                        commF:InvokeServer(unpack(args))
-                    end)
-                    task.wait(1.0) -- Delay de segurança
-                end
-            end)
-        end
-    end
-})
-
-local ToggleAutoStore = Tabs.Fruit:AddToggle("AutoStoreFruit", {
-    Title = "Auto Store Fruit",
-    Description = "",
-    Default = false,
-    Callback = function(state)
-        _G.AutoStoreFruitAtivo = state
-    end
-})
-
--- ==============================================================
--- MOTOR ULTRA OTIMIZADO DE ARMAZENAMENTO (Padrão Coelho Hub)
--- ==============================================================
-task.spawn(function()
-    local LocalPlayer = game.Players.LocalPlayer
-    local CommF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
-
-    while task.wait(0.5) do -- Meio segundo é perfeito para não floodar o servidor
-        if _G.AutoStoreFruitAtivo then
-            pcall(function()
-                local backpack = LocalPlayer.Backpack
-                if not backpack then return end
-
-                for _, item in pairs(backpack:GetChildren()) do
-                    -- Detecta se o item na mochila é uma fruta
-                    if item:IsA("Tool") and (item.Name:find("Fruit") or item:FindFirstChild("FruitScript")) then
-                        
-                        -- Extrai o nome real da fruta (Ex: "Bomb Fruit" vira "Bomb")
-                        local rawName = item.Name:gsub(" Fruit", ""):gsub("Fruta ", "")
-                        
-                        -- Monta o argumento exato que o servidor do Blox Fruits exige ("Bomb-Bomb")
-                        local fruitID = rawName .. "-" .. rawName
-                        
-                        print("Coelho Hub guardando: " .. fruitID)
-                        
-                        -- Dispara o Remote original passando a ID formatada e o objeto real
-                        CommF:InvokeServer("StoreFruit", fruitID, item)
-                        
-                        task.wait(0.2) -- Pequena pausa entre frutas para evitar anticheat
-                    end
-                end
-            end)
-        end
-    end
-end)
-
--- ==============================================================
--- TOGGLE NAS CONFIGS - COM PRECISÃO CIRÚRGICA
--- ==============================================================
-
-local ToggleAntiNotif = Tabs.Config:AddToggle("AntiNotificationClear", {
-    Title = "Anti Qualquer Notificação",
-    Description = "Limpa spams de aviso e erros no meio da tela. Seguro para o HUD!",
-    Default = false,
-    Callback = function(state)
-        _G.AntiNotificacaoGeral = state
-    end
-})
-
--- ==============================================================
--- O MATADOR DE SPAM (SÓ TEXTO CHATO)
--- ==============================================================
-task.spawn(function()
-    local LocalPlayer = game.Players.LocalPlayer
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-
-    local function limparElemento(v)
-        if not _G.AntiNotificacaoGeral then return end
-        
-        -- 1. Se for o container de notificações flutuantes do Blox Fruits
-        if v.Name == "NotificationElement" or v.Name == "Notifications" then
-            v:Destroy()
-        
-        -- 2. Se for uma label de texto solta na interface principal que não seja do chat/HUD
-        elseif v:IsA("TextLabel") and v.Visible then
-            -- Só mata se o texto for aviso de armazenamento, erro ou texto solto no meio da tela
-            if v.Text:find("store") or v.Text:find("only") or v.Text:find("limit") or v.Parent.Name == "Labels" then
-                v:Destroy()
-            end
-        end
-    end
-
-    -- Loop de verificação contínua bem leve (Heartbeat)
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if _G.AntiNotificacaoGeral then
-            pcall(function()
-                -- Limpa a pasta principal de notificações do jogo
-                local notifContainer = playerGui:FindFirstChild("Notifications")
-                if notifContainer then
-                    notifContainer:ClearAllChildren()
-                end
-                
-                -- Limpa as labels vermelhas soltas na Main sem quebrar o layout
-                local mainGui = playerGui:FindFirstChild("Main")
-                if mainGui then
-                    for _, child in pairs(mainGui:GetChildren()) do
-                        if child:IsA("TextLabel") and child.Visible then
-                            -- Mata se for o texto de erro clássico do servidor
-                            if child.Text:find("only store") or child.Text:find("Error") then
-                                child:Destroy()
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-
-    -- Escuta para novas ameaças de texto
-    playerGui.DescendantAdded:Connect(function(descendant)
-        pcall(function()
-            if _G.AntiNotificacaoGeral then
-                limparElemento(descendant)
-            end
-        end)
-    end)
-end)
-
--- ==============================================================
--- SLIDER DE VELOCIDADE DO FARM NA ABA CONFIG
--- ==============================================================
-_G.VelocidadeFarmBone = 350 -- Valor padrão inicial (equilibrado e seguro)
-
-Tabs.Config:AddSlider("SliderVelocidadeBone", {
-    Title = "Velocidade",
-    Description = "Ajusta a velocidade do Tween entre os spots",
-    Min = 100,
-    Max = 500,
-    Default = 350,
-    Rounding = 0,
-    Callback = function(Value)
-        _G.VelocidadeFarmBone = Value
-    end
-})
-
-
--- ==============================================================
--- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4)
--- ==============================================================
-
--- 1. O Botão para a sua Tab Main
-local ToggleRaceAbility = Tabs.Config:AddToggle("AutoRaceAbilityToggle", {
-    Title = "Auto Activate v3",
-    Description = "",
-    Default = false,
-    Callback = function(Value)
-        _G.RaceClickAutov3 = Value
-    end
-})
-
--- 2. O Motor que roda em segundo plano (Sem travar o clique)
-task.spawn(function()
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    -- Busca o remote CommE de forma segura
-    local CommE = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommE")
-
-    local tempoEsperaMaximo = 30 -- Tempo de Cooldown da habilidade
-    local tempoPassado = 0
-
-    while task.wait(0.2) do
-        if _G.RaceClickAutov3 then
-            pcall(function()
-                -- Dispara o remote oficial do jogo para ativar a raça
-                CommE:FireServer("ActivateAbility")
-                
-                -- LOOP DE ESPERA INTELIGENTE:
-                -- Em vez de dar um wait(30) seco, ele checa a cada 1 segundo se você desligou o botão
-                tempoPassado = 0
-                repeat
-                    task.wait(1)
-                    tempoPassado = tempoPassado + 1
-                until not _G.RaceClickAutov3 or tempoPassado >= tempoEsperaMaximo
-            end)
-        end
-    end
-end)
-
--- ==============================================================
--- BOTÃO DE RESGATAR TODOS OS CÓDIGOS (ABA CONFIG / MISC)
--- ==============================================================
-Tabs.ShopTab:AddButton({
-    Title = "Redeem All Codes",
-    Callback = function()
-        local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-        -- Lista de códigos atualizada e limpa de duplicatas inúteis
-        local Codes = {
-            "REWARDMAN", "NEWTROLL", "KITT_RESET", "Sub2CaptainMaui", "DEVSCOOKING",
-            "SUB2GAMERROBOT_RESET1", "sub2gamerrobot_exp1", "Sub2OfficialNoobie",
-            "THEGREATACE", "SUB2NOOBMASTER123", "SUB2DAIGROCK", "AXIORE",
-            "TANTAIGAMING", "STRAWHATMAINE", "BLUXXY", "FUDD10", "FUDD10_V2",
-            "BIGNREWS", "SUB2UNCLEKIZARU", "ENYU_IS_PRO", "MAGICBUS", "JCWK",
-            "STARCODEHEO", "KITTGAMING", "CHANDLER"
-        }
-
-        -- Caminho oficial e atualizado do Remote de códigos do Blox Fruits
-        local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
-
-        if not CommF then
-            -- Fallback de aviso caso a biblioteca de notificação não esteja indexada como 'bearlib'
-            print("Coelho Hub: Erro - Sistema de Remotes não encontrado.")
-            return
-        end
-
-        print("Coelho Hub: Iniciando resgate automatizado de códigos...")
-
-        for _, code in ipairs(Codes) do
-            pcall(function()
-                -- O Blox Fruits usa InvokeServer no CommF_ passando o argumento "RedeemCode"
-                CommF:InvokeServer("RedeemCode", code)
-            end)
-            -- Delay de proteção de 0.5 segundos por código para o servidor processar sem dar lag ou kick
-            task.wait(0.5) 
-        end
-
-        print("Coelho Hub: Todos os códigos disponíveis foram processados!")
-
-        -- Se sua biblioteca de UI for do estilo Rayfield/Orion, você pode descomentar a linha abaixo para mandar um aviso visual:
-        -- game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Coelho Hub", Text = "Todos os códigos foram processados!", Duration = 5})
-    end
-})
-
--- =============================================
--- TOGGLE: Cole na sua aba Main
--- =============================================
-
--- ==============================================================
--- AUTO FARM ELITE HUNTER (LÓGICA UNIVERSAL DE 5 STUDS ACIMA)
--- ==============================================================
-
--- ==============================================================
--- MOTOR ELITE HUNTER - TRAVA TOTAL SE NÃO EXISTIR BOSS (VISUAL LIMPO)
--- ==============================================================
-
-_G.FarmEliteHunt = false
-_G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350
-
-local function IrAteNPCSeguro(nomeDoNPC)
-    local Players = game:GetService("Players")
-    local Workspace = game:GetService("Workspace")
-    local TweenService = game:GetService("TweenService")
-
-    local plr = Players.LocalPlayer
-    local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    local npcAlvo = Workspace:FindFirstChild("Enemies") and Workspace.Enemies:FindFirstChild(nomeDoNPC) or Workspace:FindFirstChild(nomeDoNPC)
-
-    if npcAlvo and npcAlvo:FindFirstChild("Humanoid") and npcAlvo.Humanoid.Health > 0 and npcAlvo:FindFirstChild("HumanoidRootPart") then
-        local destinoSeguro = npcAlvo.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-        local distancia = (hrp.Position - destinoSeguro.Position).Magnitude
-        local velocidade = _G.VelocidadeFarmBone or 350
-        local tempo = math.max(distancia / velocidade, 0.05)
-
-        local tween = TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destinoSeguro})
-        tween:Play()
-
-        if distancia < 12 then
-            tween:Cancel()
-            hrp.CFrame = destinoSeguro
-        end
-        return true
-    end
-    return false
-end
-
-local ToggleEliteHunt = Tabs.Main:AddToggle("EliteHuntToggle", {
-    Title = "Auto Farm Elite Hunter",
-    Description = "Killed: 0",
-    Default = false,
-    Callback = function(Value)
-        _G.FarmEliteHunt = Value
-        if not Value then
-            local char = game.Players.LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                game:GetService("TweenService"):Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
-            end
-        end
-    end
-})
-
-local _G_StatusBossDisponivel = false
-game:GetService("RunService").Stepped:Connect(function()
-    if _G.FarmEliteHunt and _G_StatusBossDisponivel and game.Players.LocalPlayer.Character then
-        for _, part in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    local plr = game:GetService("Players").LocalPlayer
-    local replicated = game:GetService("ReplicatedStorage")
-    local workspace = game:GetService("Workspace")
-    local TweenService = game:GetService("TweenService")
-
-    while task.wait(0.5) do
-        if _G.FarmEliteHunt then
-            local eliteFound = false
-            
-            pcall(function()
-                local progress = replicated.Remotes.CommF_:InvokeServer("EliteHunter", "Progress")
-                ToggleEliteHunt:SetDesc("Killed: " .. tostring(progress))
-                
-                local bossNoReplicated = replicated:FindFirstChild("Diablo") or replicated:FindFirstChild("Deandre") or replicated:FindFirstChild("Urban")
-                local bossNoWorkspace = workspace:FindFirstChild("Enemies") and (workspace.Enemies:FindFirstChild("Diablo") or workspace.Enemies:FindFirstChild("Deandre") or workspace.Enemies:FindFirstChild("Urban"))
-                
-                if bossNoReplicated or bossNoWorkspace then
-                    eliteFound = true
-                end
-            end)
-
-            _G_StatusBossDisponivel = eliteFound
-
-            if not eliteFound then
-                pcall(function()
-                    local char = plr.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
-                    end
-                end)
-                continue
-            end
-
-            pcall(function()
-                local char = plr.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                local questUI = plr.PlayerGui.Main.Quest
-
-                if questUI and questUI.Visible == true then
-                    local titulo = questUI.Container.QuestTitle.Title.Text
-                    if string.find(titulo, "Diablo") or string.find(titulo, "Urban") or string.find(titulo, "Deandre") then
-                        
-                        _G.ChooseWP2()
-                        local cacando = IrAteNPCSeguro("Diablo") or IrAteNPCSeguro("Urban") or IrAteNPCSeguro("Deandre")
-                        
-                        if not cacando then
-                            for _, v in pairs(replicated:GetChildren()) do
-                                if string.find(v.Name, "Diablo") or string.find(v.Name, "Urban") or string.find(v.Name, "Deandre") then
-                                    if v:FindFirstChild("HumanoidRootPart") then
-                                        _G.ChooseWP2()
-                                        local destinoSeguro = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-                                        local distancia = (hrp.Position - destinoSeguro.Position).Magnitude
-                                        local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
-                                        TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destinoSeguro}):Play()
-                                    end
-                                end
-                            end
-                        end
-                    end
-                else
-                    local coordenadaNPCSegura = CFrame.new(-5417.66, 313.06 + 5, -2822.91)
-                    local distancia = (hrp.Position - coordenadaNPCSegura.Position).Magnitude
-
-                    if distancia > 15 then
-                        local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.1)
-                        TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = coordenadaNPCSegura}):Play()
-                    else
-                        TweenService:Create(hrp, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {CFrame = coordenadaNPCSegura}):Play()
-                        pcall(function()
-                            local remote = replicated:WaitForChild("Remotes"):WaitForChild("CommF_")
-                            remote:InvokeServer("EliteHunter")
-                            task.wait(0.3)
-                            remote:InvokeServer("EliteHunter", "Progress")
-                        end)
-                        task.wait(1.5)
-                    end
-                end
-            end)
-        end
-    end
-end)
-
--- Declaração da imagem
-local BannerCreditos = nil
-
-local function criarImagem()
-    if BannerCreditos then return end
-
-    local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("Fluent")
-    if not screenGui then return end
-
-    BannerCreditos = Instance.new("ImageLabel")
-    BannerCreditos.Image = "rbxassetid://94453919385793"
-    BannerCreditos.Size = UDim2.new(0, 200, 0, 200)
-    BannerCreditos.BackgroundTransparency = 1
-    BannerCreditos.ZIndex = 999
-    BannerCreditos.Parent = screenGui
-end
-
-local function destruirImagem()
-    if BannerCreditos then
-        BannerCreditos:Destroy()
-        BannerCreditos = nil
-    end
-end
-
--- Posição da imagem acompanha o parágrafo de texto
-task.spawn(function()
-    while task.wait(0.1) do
-        pcall(function()
-            local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("Fluent")
-            if not screenGui then return end
-
-            -- Verifica se a aba Creditos está visível
-            local creditosAberto = false
-            for _, v in ipairs(screenGui:GetDescendants()) do
-                if v:IsA("Frame") and v.Visible and v.Name:lower():find("credito") then
-                    creditosAberto = true
-                    break
-                end
-            end
-
-            if creditosAberto then
-                criarImagem()
-
-                -- Acompanha a posição do parágrafo
-                if BannerCreditos then
-                    for _, v in ipairs(screenGui:GetDescendants()) do
-                        if v:IsA("TextLabel") and v.Text:find("Visite nosso server") then
-                            local pos = v.AbsolutePosition
-                            BannerCreditos.Position = UDim2.new(0, pos.X, 0, pos.Y - 210)
-                            break
-                        end
-                    end
-                end
-            else
-                destruirImagem()
-            end
-        end)
-    end
-end)
-
--- Creditos
-Tabs.Creditos:AddParagraph({
-    Title = "Discord",
-    Content = "Visite nosso server"
-})
-
-Tabs.Creditos:AddButton({
-    Title = "Copiar Link do Server",
-    Description = "",
-    Callback = function()
-        setclipboard("https://discord.gg/tdSwHMhqZ")
-        print("Coelho Hub: Link copiado!")
-    end
-})
-
--- ==============================================================
--- AUTO FARM CHEST - VERSÃO ULTRA EFICIENTE (COELHO HUB)
--- ==============================================================
-
-local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
-
-local plr = Players.LocalPlayer
-
-_G.Settings = _G.Settings or {}
-_G.Settings.Farm = _G.Settings.Farm or {}
-_G.Settings.Farm["Auto Farm Chest Tween"] = false
-_G.ChestHopCount = _G.ChestHopCount or 0
-
-local function TweenPlayer(TargetCFrame)
-    local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
-    if distancia < 5 then
-        hrp.CFrame = TargetCFrame
-        return
-    end
-
-    local velocidadeAtual = _G.VelocidadeFarmBone
-    if type(velocidadeAtual) == "function" then velocidadeAtual = 350 end
-    if not velocidadeAtual or velocidadeAtual <= 0 then velocidadeAtual = 350 end
-
-    local tempoCalculado = distancia / velocidadeAtual
-    local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
-    tween:Play()
-
-    repeat
-        RunService.Heartbeat:Wait()
-    until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Chest Tween"]
-
-    if not _G.Settings.Farm["Auto Farm Chest Tween"] then
-        tween:Cancel()
-    end
-end
-
-local function _isSpecialChestItem()
-    local character = plr.Character
-    local backpack = plr:FindFirstChild("Backpack")
-    if character and backpack then
-        if character:FindFirstChild("Fist of Darkness") or backpack:FindFirstChild("Fist of Darkness") or
-           character:FindFirstChild("Gods Chalice") or backpack:FindFirstChild("Gods Chalice") then
-            return true
-        end
-    end
-    return false
-end
-
-Tabs.Main:AddToggle("ToggleAutoChestOriginal", {
-    Title = "Auto Farm Chest",
-    Description = "",
-    Default = false,
-    Callback = function(Value)
-        _G.Settings.Farm["Auto Farm Chest Tween"] = Value
-        if not Value then
-            local char = plr.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
-            end
-        end
-    end
-})
-
-RunService.Stepped:Connect(function()
-    if _G.Settings.Farm["Auto Farm Chest Tween"] and plr.Character then
-        for _, part in ipairs(plr.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    local chestModels = Workspace:WaitForChild("ChestModels", 5)
-
-    while true do
-        task.wait(0)
-
-        if _G.Settings.Farm["Auto Farm Chest Tween"] then
-            pcall(function()
-                local char = plr.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                if _isSpecialChestItem() then
-                    _G.Settings.Farm["Auto Farm Chest Tween"] = false
-                    StarterGui:SetCore("SendNotification", {
-                        Title = "Coelho Hub",
-                        Text = "Item especial encontrado! Farm de Chest parado por segurança.",
-                        Duration = 6
-                    })
-                    return
-                end
-
-                chestModels = Workspace:FindFirstChild("ChestModels")
-                if chestModels then
-                    local chests = chestModels:GetChildren()
-
-                    if #chests > 0 then
-                        for i = 1, #chests do
-                            if not _G.Settings.Farm["Auto Farm Chest Tween"] or _isSpecialChestItem() then break end
-
-                            local v = chests[i]
-                            if v and v.Parent and v.Name:find("Chest") and v:FindFirstChild("RootPart") then
-                                local root = v.RootPart
-
-                                -- voa até o baú
-                                TweenPlayer(root.CFrame * CFrame.new(0, 2, 0))
-
-                                -- depois faz o bypass de colisão
-                                repeat
-                                    RunService.Heartbeat:Wait()
-                                    firetouchinterest(hrp, root, 0)
-                                    firetouchinterest(hrp, root, 1)
-                                until not _G.Settings.Farm["Auto Farm Chest Tween"] or not v.Parent or _isSpecialChestItem()
-
-                                _G.ChestHopCount = _G.ChestHopCount + 1
-                            end
-                        end
-                    else
-                        task.wait(0.1)
-                    end
-                else
-                    task.wait(0.3)
-                end
-            end)
-        else
-            task.wait(0.3)
-        end
-    end
-end)
-
--- ==============================================================
--- AUTO FARM FRUIT - VERSÃO ULTRA EFICIENTE (COELHO HUB)
--- ==============================================================
-
--- Cache de Serviços e Variáveis Globais (Otimização de Memória)
-local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local plr = Players.LocalPlayer
-
-_G.Settings = _G.Settings or {}
-_G.Settings.Farm = _G.Settings.Farm or {}
-_G.Settings.Farm["Auto Farm Fruit Tween"] = false
-_G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350 
-
--- 1. FUNÇÃO TWEENPLAYER OPTIMIZADA (Idêntica ao seu padrão de Baús)
-local function TweenPlayer(TargetCFrame)
-    local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
-
-    if distancia < 5 then
-        hrp.CFrame = TargetCFrame
-        return
-    end
-
-    local velocidadeAtual = _G.VelocidadeFarmBone
-    if velocidadeAtual <= 0 then velocidadeAtual = 1 end 
-
-    local tempoCalculado = distancia / velocidadeAtual
-    local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
-    tween:Play()
-
-    -- Aguarda o término do movimento de forma eficiente
-    repeat 
-        RunService.Heartbeat:Wait() 
-    until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Fruit Tween"]
-
-    if not _G.Settings.Farm["Auto Farm Fruit Tween"] then
-        tween:Cancel()
-    end
-end
-
--- 2. O BOTÃO DA INTERFACE
-Tabs.Fruit:AddToggle("ToggleAutoFruitOriginal", {
-    Title = "Auto colect Fruit",
-    Description = "",
-    Default = false,
-    Callback = function(Value)
-        _G.Settings.Farm["Auto Farm Fruit Tween"] = Value
-        if not Value then
-            local char = plr.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
-            end
-        end
-    end
-})
-
--- 3. LOOP DO NOCLIP BRUTO DE ALTA PERFORMANCE
-RunService.Stepped:Connect(function()
-    if _G.Settings.Farm["Auto Farm Fruit Tween"] and plr.Character then
-        for _, part in ipairs(plr.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
--- 4. MOTOR PRINCIPAL - VAI ATÉ A FRUTA E LIMPA O SERVER
-task.spawn(function()
-    while true do
-        if _G.Settings.Farm["Auto Farm Fruit Tween"] then
-            local items = Workspace:GetChildren()
-            local frutaEncontradaNoTurno = false
-
-            -- Varre o Workspace usando o seu loop numérico indexado de alta performance
-            for i = 1, #items do
-                if not _G.Settings.Farm["Auto Farm Fruit Tween"] then break end
-
-                local v = items[i]
-                local handle = v and v:FindFirstChild("Handle")
-
-                -- Se encontrar uma fruta no mapa, vai até ela (Tween) por ordem de aparição
-                if handle and v.Name:find("Fruit") then
-                    frutaEncontradaNoTurno = true
-
-                    -- Fica preso na fruta atual indo até ela e pegando até que ela suma do mapa
-                    repeat
-                        RunService.Heartbeat:Wait()
-                        TweenPlayer(handle.CFrame)
-
-                        local char = plr.Character
-                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-                        if hrp and handle then
-                            -- Força a coleta por toque físico direto na fruta
-                            firetouchinterest(hrp, handle, 0)
-                            firetouchinterest(hrp, handle, 1)
-                        end
-                    -- Só passa para a próxima fruta da lista quando a atual sumir (.Parent virar nil)
-                    until not _G.Settings.Farm["Auto Farm Fruit Tween"] or not v.Parent
-                end
-            end
-
-            -- Se varreu o servidor inteiro e não achou mais nenhuma fruta, espera antes de checar de novo
-            if not frutaEncontradaNoTurno then
-                task.wait(1) -- Delay inteligente para economizar CPU quando o server estiver limpo
-            end
-        else
-            task.wait(0.5) -- Delay padrão quando o botão está desligado
-        end
-    end
-end)
-
-_G.AutoBuyBones = false -- Começa desligado
-
--- TOGGLE PARA COMPRAR COM BONES
-Tabs.Main:AddToggle("AutoBuyBonesToggle", {
-    Title = "random bones",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoBuyBones = Value
-
-        if Value then
-            task.spawn(function()
-                while _G.AutoBuyBones do
-                    pcall(function()
-                        -- Executa o remote enviado com os seus argumentos
-                        local args = {
-                            "Bones",
-                            "Buy",
-                            1,
-                            1
-                        }
-                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
-                    end)
-                    task.wait(0.5) -- Intervalo entre cada compra (ajuste se quiser mais rápido ou mais lento)
-                end
-            end)
-        end
-    end
-})
-
-_G.BringMobRadius = 300 -- Começa em 300 (Desativado)
-
--- 1. O SLIDER NA ABA CONFIG
-Tabs.Config:AddSlider("BringMobRadiusSlider", {
-    Title = "Bring Mob Distance",
-    Description = "bring mob",
-    Min = 300,
-    Max = 500,
-    Default = 300,
-    Rounding = 0,
-    Callback = function(Value)
-        _G.BringMobRadius = Value
-    end
-})
-
--- 2. A FUNÇÃO ISOLADA COM AJUSTE DE ALTURA (-3 STUDS)
-_G.BringMobFuncion = function(alvoPrincipal)
-    -- Só executa se o slider estiver acima de 300
-    if not _G.BringMobRadius or _G.BringMobRadius <= 300 then return end
-
-    local character = game.Players.LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    -- Varre a pasta de inimigos
-    for _, mob in pairs(workspace.Enemies:GetChildren()) do
-        local mobHrp = mob:FindFirstChild("HumanoidRootPart")
-        local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-
-        -- Verifica se o mob está vivo e ignora o alvo principal do voo
-        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= alvoPrincipal then
-            local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
-
-            -- Se estiver dentro do raio definido no Slider, puxa exatamente 3 studs abaixo
-            if distanciaMob <= _G.BringMobRadius then
-                -- O CFrame pega a sua posição e subtrai 3 studs apenas na altura (eixo Y)
-            mobHrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, -3, 0))
-            end
-        end
-    end
-end
-
-
-repeat wait() until game:IsLoaded()
-
-local PlaceIds = {
-    [2753915549] = "World 1",
-    [4442272183] = "World 2",
-    [7449423635] = "World 3 ",
-    [79091703265657] = "Sea 2",
-    [996949360] = "Sea 2",
-    [100117331123089] = "World 3",
-}
-
-local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
-
-Tabs.Status:AddParagraph({
-    Title = "Mundo Atual",
-    Content = CurrentWorld
-})
-
-_G.BaitAmount = 10
-_G.SelectedBait = "Basic Bait"
-_G.AutoCraftBait = false
-
-local Sea2Ids = {[79091703265657] = true, [996949360] = true}
-local Sea3Ids = {[7449423635] = true, [100117331123089] = true}
-
-local function GetAnglerCFrame()
-    local placeId = game.PlaceId
-    if Sea2Ids[placeId] then
-        return CFrame.new(-1942.65723, 6.4788909, -2605.2312, 0.596867919, -3.44649553e-09, -0.802339554, -2.59415778e-08, 1, -2.35937403e-08, 0.802339554, 3.48962992e-08, 0.596867919)
-    elseif Sea3Ids[placeId] then
-        return CFrame.new(-16201.0859, 9.70211792, 441.266724, 0.190850228, -3.35462218e-08, -0.981619179, 1.69887677e-08, 1, -3.08713517e-08, 0.981619179, -1.07846958e-08, 0.190850228)
-    else
-        return CFrame.new(26.5670776, 10.6520329, 5344.48633, -0.961029828, 1.24920945e-08, -0.276444763, 2.37652227e-08, 1, -3.74287907e-08, 0.276444763, -4.2539952e-08, -0.961029828)
-    end
-end
-
-Tabs.Others:AddDropdown("BaitSelector", {
-    Title = "Select Bait Type",
-    Values = {"Basic Bait", "Abyssal Bait"},
-    Default = "Basic Bait",
-    Callback = function(Value)
-        _G.SelectedBait = Value
-    end
-})
-
-Tabs.Others:AddToggle("AutoCraftBait", {
-    Title = "Craft Bait",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoCraftBait = Value
-        if Value then
-            task.spawn(function()
-                while _G.AutoCraftBait do
-                    pcall(function()
-                        if not _G.AutoCraftBait then return end
-                        local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then return end
-
-                        local destino = GetAnglerCFrame()
-                        local distancia = (hrp.Position - destino.Position).Magnitude
-                        local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
-                        game:GetService("TweenService"):Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destino}):Play()
-                        task.wait(tempo + 0.3)
-
-                        if not _G.AutoCraftBait then return end
-
-                        local args = {"Craft", _G.SelectedBait, _G.BaitAmount, {}}
-                        game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RF/Craft"):InvokeServer(unpack(args))
-                    end)
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
-
-Tabs.Others:AddDropdown("BaitAmountDropdown", {
-    Title = "Quantidade de Bait",
-    Values = {"10", "20", "30", "40", "50"},
-    Default = "10",
-    Callback = function(Value)
-        _G.BaitAmount = tonumber(Value)
-    end
-})
-
-local Players = game:GetService("Players")
-
-local playerList = {}
-
-local function getPlayerNames()
-    local names = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        table.insert(names, p.Name)
-    end
-    return names
-end
-
-local selectedPlayer = nil
-
-local PlayerDropdown = Tabs.PvpTab:AddDropdown("PlayerDropdown", {
-    Title = "Jogadores",
-    Values = getPlayerNames(),
-    Default = nil,
-    Callback = function(Value)
-        selectedPlayer = Value
-    end
-})
-
-Tabs.PvpTab:AddButton({
-    Title = "Refresh",
-    Callback = function()
-        PlayerDropdown:SetValues(getPlayerNames())
-    end
-})
-
-_G.VoarAteJogador = false
-
-Tabs.PvpTab:AddToggle("VoarAteJogador", {
-    Title = "Voar até Jogador",
-    Default = false,
-    Callback = function(Value)
-        _G.VoarAteJogador = Value
-        if Value then
-            task.spawn(function()
-                while _G.VoarAteJogador do
-                    local character = Players.LocalPlayer.Character
-                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                    if not hrp then task.wait(1) continue end
-
-                    if not selectedPlayer then task.wait(1) continue end
-
-                    local target = Players:FindFirstChild(selectedPlayer)
-                    if not target then task.wait(1) continue end
-
-                    local targetCharacter = target.Character
-                    local targetHrp = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
-                    if not targetHrp then task.wait(1) continue end
-
-                    local distancia = (hrp.Position - targetHrp.Position).Magnitude
-
-                    -- só voa se estiver longe o suficiente
-                    if distancia > 10 then
-                        _G.VelocidadeFarmBone(hrp, targetHrp.Position + Vector3.new(0, 3, 0))
-                        -- cooldown aleatório entre 0.3 e 0.8 segundos pra parecer mais humano
-                        task.wait(math.random(3, 8) / 10)
-                    else
-                        task.wait(0.2)
-                    end
-                end
-            end)
-        end
-    end
-})
-
-_G.Test = false
-
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local CFrameEspera = CFrame.new(-9502.07227, 501.75415, 6012.94678, 0.0197974183, 0.000531507714, 0.999803841, 0.00015926265, 0.999999821, -0.000534765481, -0.99980402, 0.000169818391, 0.0197973307)
-
-local Sea3Ids = {
-    [7449423635] = true,
-    [100117331123089] = true,
-}
-
-local function getRandomNPC()
-    local mobReborn = workspace.Enemies["Reborn Skeleton"]
-    local mobIndex8 = workspace.Enemies:GetChildren()[8]
-    local mobIndex9 = workspace.Enemies:GetChildren()[9]
-    local mobIndex10 = workspace.Enemies:GetChildren()[10]
-    local mobIndex12 = workspace.Enemies:GetChildren()[12]
-    local mobIndex13 = workspace.Enemies:GetChildren()[13]
-    local mobIndex19 = workspace.Enemies:GetChildren()[19]
-
-    local listaNPCs = {
-        mobReborn, mobIndex8, mobIndex9, mobIndex10, mobIndex12, mobIndex13, mobIndex19
-    }
-
-    local vivos = {}
-    for _, mob in ipairs(listaNPCs) do
-        if mob then
-            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
-            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                table.insert(vivos, mob)
-            end
-        end
-    end
-
-    if #vivos == 0 then return nil end
-    return vivos[math.random(1, #vivos)]
-end
-
-local function voarAte(hrp, posicaoAlvo)
-    local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-    local duracao = distancia / velocidade
-    local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
-    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(posicaoAlvo)})
-    tween:Play()
-    tween.Completed:Wait()
-end
-
-Tabs.Main:AddToggle("Test", {
-    Title = "Farm bone",
-    Default = false,
-    Callback = function(Value)
-        _G.Test = Value
-
-        if Value then
-            task.spawn(function()
-                if not Sea3Ids[game.PlaceId] then
-                    _G.Test = false
-                    return
-                end
-
-                local character = LocalPlayer.Character
-                local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                voarAte(hrp, CFrameEspera.Position)
-
-                while _G.Test do
-                    pcall(function()
-                        character = LocalPlayer.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then return end
-
-                        local inimigoAtual = getRandomNPC()
-
-                        if not inimigoAtual then
-                            while _G.Test and not getRandomNPC() do
-                                task.wait(0.5)
-                            end
-                            return
-                        end
-
-                        local mobHrp = inimigoAtual:FindFirstChild("HumanoidRootPart")
-                        local mobHumanoid = inimigoAtual:FindFirstChildOfClass("Humanoid")
-
-                        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                            _G.ChooseWP2()
-                            voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
-
-                            while _G.Test and inimigoAtual.Parent == workspace.Enemies and mobHumanoid and mobHumanoid.Health > 0 do
-                                character = LocalPlayer.Character
-                                hrp = character and character:FindFirstChild("HumanoidRootPart")
-                                if not hrp then break end
-
-                                _G.ChooseWP2()
-                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
-                            end
-                        end
-                    end)
-                    task.wait(0.2)
-                end
-            end)
-        end
-    end
-})
-
-_G.TestVoarCakePrince = false
-
-local TweenService = game:GetService("TweenService")
-
-local CFrameInicio = CFrame.new(-2135.04028, 70.0246201, -12396.6025, 0.995649099, -1.74269381e-08, 0.0931816623, 2.13228315e-08, 1, -4.08140401e-08, -0.0931816623, 4.26233591e-08, 0.995649099)
-
-local function voarAte(hrp, posicaoAlvo)
-    local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    if distancia < 2 then return end
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-    local duracao = distancia / velocidade
-    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
-    tween:Play()
-    local timeout = tick() + duracao + 1
-    repeat
-        task.wait(0.1)
-    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.TestVoarCakePrince
-end
-
-Tabs.Stack:AddToggle("TestVoarCakePrince", {
-    Title = "kill cake prince",
-    Default = false,
-    Callback = function(Value)
-        _G.TestVoarCakePrince = Value
-
-        if Value then
-            task.spawn(function()
-                local character = game.Players.LocalPlayer.Character
-                local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                -- voa pro CFrame inicial primeiro
-                voarAte(hrp, CFrameInicio.Position)
-
-                while _G.TestVoarCakePrince do
-                    pcall(function()
-                        character = game.Players.LocalPlayer.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then return end
-
-                        local boss = game:GetService("ReplicatedStorage"):FindFirstChild("Cake Prince")
-                        if not boss then return end
-
-                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
-                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
-
-                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            while _G.TestVoarCakePrince and boss.Parent and bossHumanoid.Health > 0 do
-                                character = game.Players.LocalPlayer.Character
-                                hrp = character and character:FindFirstChild("HumanoidRootPart")
-                                if not hrp then break end
-
-                                _G.ChooseWP2()
-                                voarAte(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
-                            end
-                        end
-                    end)
-                    task.wait(0.2)
-                end
-            end)
-        end
-    end
-})
-
-
-
-_G.KillRipIndra = false
-
--- TOGGLE PARA CAÇAR O RIP INDRA TRUE FORM
-Tabs.Stack:AddToggle("KillRipIndraToggle", {
-    Title = "Kill rip_indra True Form",
-    Default = false,
-    Callback = function(Value)
-        _G.KillRipIndra = Value
-
-        if Value then
-            task.spawn(function()
-                while _G.KillRipIndra do
-                    pcall(function()
-                        local character = LocalPlayer.Character
-                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                        
-                        if not hrp or not humanoid or humanoid.Health <= 0 then 
-                            task.wait(0.5)
-                            return 
-                        end
-
-                        -- Escaneia a localização exata na pasta workspace.Enemies
-                        local boss = workspace:FindFirstChild("Enemies") and workspace.Enemies:FindFirstChild("rip_indra True Form") or workspace:FindFirstChild("rip_indra True Form")
-
-                        -- Se o Boss não estiver spawnado no servidor, limpa as forças e espera
-                        if not boss then
-                            local bv = hrp:FindFirstChild("AntiCheatFlyForce")
-                            if bv then bv:Destroy() end
-                            task.wait(0.5)
-                            return
-                        end
-
-                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
-                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
-
-                        -- Se o rip_indra estiver vivo, desce o cacete nele
-                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            
-                            -- Executa a sua função nativa de equipar a arma para atacar
-                            if type(_G.ChooseWP2) == "function" and not character:FindFirstChildOfClass("Tool") then
-                                _G.ChooseWP2()
-                            end
-
-                            -- Calcula o ponto cego (3 studs acima da cabeça dele para atacar com total segurança)
-                            local posicaoAlvo = bossHrp.Position + Vector3.new(0, 3, 0)
-                            
-                            -- Inicia o voo físico suave travando no Boss
-                            voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
-                        end
-                    end)
-                    task.wait(0.05)
-                end
-                
-                -- Limpeza absoluta ao desligar a Toggle manualmente para você não ficar flutuando
-                pcall(function()
-                    local character = LocalPlayer.Character
-                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                    if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
-                        hrp.AntiCheatFlyForce:Destroy()
-                    end
-                end)
-            end)
-        end
-    end
-})
-
-Tabs.PvpTab:AddToggle("AutoActivatePvP",{
-	Title = "Auto Activate PvP",
-	Desc = "",
-	Value = false,
-	Callback = function(v)
-		if v then
-			spawn(function()
-				while v do
-					pcall(function()
-						(game:GetService("ReplicatedStorage")).Remotes.CommF_:InvokeServer("ActivatePvp", true);
-					end);
-					task.wait(5);
-				end;
-			end);
-		end;
-	end
-});
-
-Tabs.Stack:AddToggle("TeleportKitsune", {
-    Title = "Teleport Kitsune Island",
-    Default = false,
-    Callback = function(Value)
-        _G.TeleportKitsune = Value
-
-        if Value then
-            task.spawn(function()
-                local character = game.Players.LocalPlayer.Character
-                local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                local destino = workspace._WorldOrigin.Locations["Kitsune Island"]
-                if not destino then return end
-
-                -- cooldown aleatório antes de começar o voo
-                task.wait(math.random(5, 15) / 10)
-
-                _G.ChooseWP2()
-                voarAte(hrp, destino.Position)
-
-                _G.TeleportKitsune = false
-            end)
-        end
-    end
-})
-
-
-_G.BringMobRadius = 300 -- Começa em 300 (Desativado)
-
--- 1. O SLIDER NA ABA CONFIG
-Tabs.Config:AddSlider("BringMobRadiusSlider", {
-    Title = "Bring Mob Distance",
-    Description = "bring mob",
-    Min = 300,
-    Max = 500,
-    Default = 300,
-    Rounding = 0,
-    Callback = function(Value)
-        _G.BringMobRadius = Value
-    end
-})
-
--- 2. A FUNÇÃO ISOLADA COM AJUSTE DE ALTURA (-3 STUDS)
-_G.BringMobFuncion = function(alvoPrincipal)
-    -- Só executa se o slider estiver acima de 300
-    if not _G.BringMobRadius or _G.BringMobRadius <= 300 then return end
-    
-    local character = game.Players.LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Varre a pasta de inimigos
-    for _, mob in pairs(workspace.Enemies:GetChildren()) do
-        local mobHrp = mob:FindFirstChild("HumanoidRootPart")
-        local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-        
-        -- Verifica se o mob está vivo e ignora o alvo principal do voo
-        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= alvoPrincipal then
-            local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
-            
-            -- Se estiver dentro do raio definido no Slider, puxa exatamente 3 studs abaixo
-            if distanciaMob <= _G.BringMobRadius then
-                -- O CFrame pega a sua posição e subtrai 3 studs apenas na altura (eixo Y)
-            mobHrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, -3, 0))
-            end
-        end
-    end
-end
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
-
-local LocalPlayer = Players.LocalPlayer
-local EnemiesFolder = Workspace:WaitForChild("Enemies")
-
--- Função padrão de voo implacável com controle de velocidade (_G.VelocidadeFarmBone)
-local function voarAteSoulReaper(hrp, posicaoAlvo)
-    local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    if distancia < 2 then return end
-    
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-    local duracao = distancia / velocidade
-    
-    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
-    tween:Play()
-    
-    local timeout = tick() + duracao + 0.5
-    repeat
-        task.wait(0.05)
-    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.KillSoulReaper
-    
-    if not _G.KillSoulReaper then tween:Cancel() end
-end
-
--- TOGGLE PARA MATAR O SOUL REAPER NA TAB STACK
-_G.KillSoulReaper = false
-
-Tabs.Stack:AddToggle("KillSoulReaperToggle", {
-    Title = "Kill Soul Reaper",
-    Default = false,
-    Callback = function(Value)
-        _G.KillSoulReaper = Value
-        
-        if Value then
-            task.spawn(function()
-                -- O loop só para se o boss morrer/sumir ou se você desligar a toggle
-                while _G.KillSoulReaper do
-                    pcall(function()
-                        local character = LocalPlayer.Character
-                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                        
-                        -- Se você morrer ou resetar, espera o seu corpo spawnar de novo
-                        if not hrp or not humanoid or humanoid.Health <= 0 then
-                            task.wait(0.5)
-                            return
-                        end
-                        
-                        -- Verifica se o Soul Reaper está na pasta e vivo
-                        local boss = EnemiesFolder:FindFirstChild("Soul Reaper")
-                        if not boss then
-                            warn("Soul Reaper nao encontrado ou ja foi derrotado!")
-                            _G.KillSoulReaper = false -- Desliga automaticamente se ele sumir
-                            return
-                        end
-                        
-                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
-                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
-                        
-                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            -- EQUIP WEAPON (Garante a arma se a mão estiver vazia)
-                            if not character:FindFirstChildOfClass("Tool") and type(_G.ChooseWP2) == "function" then 
-                                _G.ChooseWP2() 
-                            end
-                            
-                            -- Voa exatamente 3 studs acima dele para descer a lenha com segurança
-                            voarAteSoulReaper(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
-                            
-                            -- Se o Bring Mob estiver ativo, ajuda a puxar se tiver mais bicho perto
-                            if type(_G.BringMobFuncion) == "function" then
-                                _G.BringMobFuncion(boss)
-                            end
-                        else
-                            -- Se a vida dele zerou, o farm acabou!
-                            warn("Soul Reaper foi de base! Desligando farm.")
-                            _G.KillSoulReaper = false
-                        end
-                    end)
-                    task.wait(0.1)
-                end
-            end)
         end
     end
 })
