@@ -142,11 +142,3 @@ else
         loadstring(game:HttpGet("https://raw.githubusercontent.com/af6094870-art/pos-TesterCoelho-hub/refs/heads/main/README.md"))()
     end)
 end
-
-getgenv().Team = "Marines"          -- Pirates or Marines
-if getgenv().Team == "Pirates" then
-    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
-elseif getgenv().Team == "Marines" then
-    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
-end
-wait(4)
