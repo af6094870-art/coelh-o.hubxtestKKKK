@@ -84,18 +84,16 @@ end)
 -- 1. PRIMEIRO: CRIA TODAS AS ABAS DO MENU
 -- ========================================================
 local Tabs = {
-    ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "" }),
+    ShopTab = Window:AddTab({ Title = "ShopTab", Icon = "coins" }),
     Race = Window:AddTab({ Title = "Race", Icon = "" }),
     Others = Window:AddTab({ Title = "Others", Icon = "" }),
-    Status = Window:AddTab({ Title = "Status and Server", Icon = "" }),
-    Config = Window:AddTab({ Title = "config", Icon = "" }),
-    Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Items = Window:AddTab({ Title = "Items", Icon = "" }),
-    Stack = Window:AddTab({ Title = "Stack farm", Icon = "" }),
-    Fruit = Window:AddTab({ Title = "Fruit", Icon = "" }),
-    Teleport = Window:AddTab({ Title = "Teleport", Icon = "" }),
-    Creditos = Window:AddTab({ Title = "Creditos", Icon = "" }),
-    seaevent = Window:AddTab({ Title = "Sea Event", Icon = "" }),
+    Status = Window:AddTab({ Title = "Status and Server", Icon = "activity" }),
+    Config = Window:AddTab({ Title = "config", Icon = "settings" }),
+    Main = Window:AddTab({ Title = "Main", Icon = "sword" }),
+    Items = Window:AddTab({ Title = "Items", Icon = "package" }),
+    Fruit = Window:AddTab({ Title = "Fruit", Icon = "cherry" }),
+    Teleport = Window:AddTab({ Title = "Teleport", Icon = "compass" }),
+    Creditos = Window:AddTab({ Title = "Creditos", Icon = "info" }),
     PvpTab = Window:AddTab({ Title = "PvpTab", Icon = "" })
 }
 
@@ -366,16 +364,16 @@ local getgc        = getgc        or function() return {} end
 local hookfunction = hookfunction or function() end
 local iscclosure   = iscclosure   or function() return false end
 local getsenv      = getsenv      or function() return {} end
- 
+
 -- =====================================================
 loadstring(game:HttpGet("https://raw.githubusercontent.com/AnhDzaiScript/Setting/refs/heads/main/FastMax.lua"))()
- 
+
 local function GetBladeHits()
     local targets = {}
     local function GetDistance(v)
         return (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
     end
- 
+
     for _, part in pairs({game.Workspace.Enemies, game.Workspace.Characters}) do
         for _, v in pairs(part:GetChildren()) do
             if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Head") and v:FindFirstChild("Humanoid") then
@@ -385,23 +383,23 @@ local function GetBladeHits()
             end
         end
     end
- 
+
     return targets
 end
- 
+
 local function AttackAll()
     local player = game.Players.LocalPlayer
     local character = player.Character
     if not character then return end
- 
+
     local equippedWeapon = character:FindFirstChild("EquippedWeapon")
     if not equippedWeapon then return end
- 
+
     local enemies = GetBladeHits()
     if #enemies > 0 then
         local netModule = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net")
         netModule:WaitForChild("RE/RegisterAttack"):FireServer(-math.huge)
- 
+
         local args = {nil, {}}
         for i, v in pairs(enemies) do
             if not args[1] then
@@ -409,23 +407,23 @@ local function AttackAll()
             end
             args[2][i] = {v, v.HumanoidRootPart}
         end
- 
+
         netModule:WaitForChild("RE/RegisterHit"):FireServer(unpack(args))
     end
 end
- 
+
 spawn(function()
     while task.wait() do AttackAll() end
 end)
- 
+
 -- =====================================================
- 
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
- 
+
 local Player = Players.LocalPlayer
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
@@ -433,7 +431,7 @@ local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
 local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
- 
+
 local Config = {
     AttackDistance = 90,
     AttackMobs = true,
@@ -444,10 +442,10 @@ local Config = {
     HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
     AutoClickEnabled = true
 }
- 
+
 local FastAttack = {}
 FastAttack.__index = FastAttack
- 
+
 function FastAttack.new()
     local self = setmetatable({
         Debounce = 0,
@@ -460,7 +458,7 @@ function FastAttack.new()
         ShootsPerTarget = {["Dual Flintlock"] = 2},
         SpecialShoots = {["Skull Guitar"] = "TAP", ["Bazooka"] = "Position", ["Cannon"] = "Position", ["Dragonstorm"] = "Overheat"}
     }, FastAttack)
- 
+
     pcall(function()
         self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
         self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
@@ -469,15 +467,15 @@ function FastAttack.new()
             self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
         end
     end)
- 
+
     return self
 end
- 
+
 function FastAttack:IsEntityAlive(entity)
     local humanoid = entity and entity:FindFirstChild("Humanoid")
     return humanoid and humanoid.Health > 0
 end
- 
+
 function FastAttack:CheckStun(Character, Humanoid, ToolTip)
     local Stun = Character:FindFirstChild("Stun")
     local Busy = Character:FindFirstChild("Busy")
@@ -488,12 +486,12 @@ function FastAttack:CheckStun(Character, Humanoid, ToolTip)
     end
     return true
 end
- 
+
 function FastAttack:GetBladeHits(Character, Distance)
     local Position = Character:GetPivot().Position
     local BladeHits = {}
     Distance = Distance or Config.AttackDistance
- 
+
     local function ProcessTargets(Folder)
         for _, Enemy in ipairs(Folder:GetChildren()) do
             if Enemy ~= Character and self:IsEntityAlive(Enemy) then
@@ -508,17 +506,17 @@ function FastAttack:GetBladeHits(Character, Distance)
             end
         end
     end
- 
+
     if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end
     if Config.AttackPlayers then ProcessTargets(Workspace.Characters) end
- 
+
     return BladeHits
 end
- 
+
 function FastAttack:GetClosestEnemy(Character, Distance)
     local BladeHits = self:GetBladeHits(Character, Distance)
     local Closest, MinDistance = nil, math.huge
- 
+
     for _, Hit in ipairs(BladeHits) do
         local Magnitude = (Character:GetPivot().Position - Hit[2].Position).Magnitude
         if Magnitude < MinDistance then
@@ -528,7 +526,7 @@ function FastAttack:GetClosestEnemy(Character, Distance)
     end
     return Closest
 end
- 
+
 function FastAttack:GetCombo()
     local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
     Combo = Combo >= Config.MaxCombo and 1 or Combo + 1
@@ -536,22 +534,22 @@ function FastAttack:GetCombo()
     self.M1Combo = Combo
     return Combo
 end
- 
+
 function FastAttack:ShootInTarget(TargetPosition)
     local Character = Player.Character
     if not self:IsEntityAlive(Character) then return end
- 
+
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped or Equipped.ToolTip ~= "Gun" then return end
- 
+
     local Cooldown = Equipped:FindFirstChild("Cooldown") and Equipped.Cooldown.Value or 0.3
     if (tick() - self.ShootDebounce) < Cooldown then return end
- 
+
     local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
     if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
         Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
         GunValidator:FireServer(self:GetValidator2())
- 
+
         if ShootType == "TAP" then
             Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
         else
@@ -565,7 +563,7 @@ function FastAttack:ShootInTarget(TargetPosition)
         self.ShootDebounce = tick()
     end
 end
- 
+
 function FastAttack:GetValidator2()
     local v1 = getupvalue(self.ShootFunction, 15)
     local v2 = getupvalue(self.ShootFunction, 13)
@@ -574,14 +572,14 @@ function FastAttack:GetValidator2()
     local v5 = getupvalue(self.ShootFunction, 14)
     local v6 = getupvalue(self.ShootFunction, 12)
     local v7 = getupvalue(self.ShootFunction, 18)
- 
+
     local v8 = v6 * v2
     local v9 = (v5 * v2 + v6 * v1) % v3
     v9 = (v9 * v3 + v8) % v4
     v5 = math.floor(v9 / v3)
     v6 = v9 - v5 * v3
     v7 = v7 + 1
- 
+
     setupvalue(self.ShootFunction, 15, v1)
     setupvalue(self.ShootFunction, 13, v2)
     setupvalue(self.ShootFunction, 16, v3)
@@ -589,14 +587,14 @@ function FastAttack:GetValidator2()
     setupvalue(self.ShootFunction, 14, v5)
     setupvalue(self.ShootFunction, 12, v6)
     setupvalue(self.ShootFunction, 18, v7)
- 
+
     return math.floor(v9 / v4 * 16777215), v7
 end
- 
+
 function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
     self.EnemyRootPart = nil
     local BladeHits = self:GetBladeHits(Character)
- 
+
     if self.EnemyRootPart then
         RegisterAttack:FireServer(Cooldown)
         if self.CombatFlags and self.HitFunction then
@@ -606,34 +604,34 @@ function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
         end
     end
 end
- 
+
 function FastAttack:UseFruitM1(Character, Equipped, Combo)
     local Targets = self:GetBladeHits(Character)
     if not Targets[1] then return end
- 
+
     local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
     Equipped.LeftClickRemote:FireServer(Direction, Combo)
 end
- 
+
 function FastAttack:Attack()
     if not Config.AutoClickEnabled or (tick() - self.Debounce) < Config.AttackCooldown then return end
     local Character = Player.Character
     if not Character or not self:IsEntityAlive(Character) then return end
- 
+
     local Humanoid = Character.Humanoid
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped then return end
- 
+
     local ToolTip = Equipped.ToolTip
     if not table.find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
- 
+
     local Cooldown = Equipped:FindFirstChild("Cooldown") and Equipped.Cooldown.Value or Config.AttackCooldown
     if not self:CheckStun(Character, Humanoid, ToolTip) then return end
- 
+
     local Combo = self:GetCombo()
     Cooldown = Cooldown + (Combo >= Config.MaxCombo and 0.05 or 0)
     self.Debounce = Combo >= Config.MaxCombo and ToolTip ~= "Gun" and (tick() + 0.05) or tick()
- 
+
     if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
         self:UseFruitM1(Character, Equipped, Combo)
     elseif ToolTip == "Gun" then
@@ -645,12 +643,12 @@ function FastAttack:Attack()
         self:UseNormalClick(Character, Humanoid, Cooldown)
     end
 end
- 
+
 local AttackInstance = FastAttack.new()
 table.insert(AttackInstance.Connections, RunService.Stepped:Connect(function()
     AttackInstance:Attack()
 end))
- 
+
 -- getgc só existe no executor, no Studio retorna {} então o loop não faz nada
 for _, v in pairs(getgc(true)) do
     if typeof(v) == "function" and iscclosure(v) then
@@ -663,7 +661,7 @@ for _, v in pairs(getgc(true)) do
         end
     end
 end
- 
+
 -- =====================================================
 -- Fast 2
 -- =====================================================
@@ -672,7 +670,7 @@ local Net2 = Modules2.Net
 local Register_Hit = Net2:WaitForChild("RE/RegisterHit")
 local Register_Attack = Net2:WaitForChild("RE/RegisterAttack")
 local Funcs = {}
- 
+
 local function GetAllBladeHits()
     local bladehits = {}
     for _, v in pairs(workspace.Enemies:GetChildren()) do
@@ -683,7 +681,7 @@ local function GetAllBladeHits()
     end
     return bladehits
 end
- 
+
 local function Getplayerhit()
     local bladehits = {}
     for _, v in pairs(workspace.Characters:GetChildren()) do
@@ -694,7 +692,7 @@ local function Getplayerhit()
     end
     return bladehits
 end
- 
+
 function Funcs:Attack()
     local bladehits = {}
     for _, v in pairs(GetAllBladeHits()) do
@@ -704,7 +702,7 @@ function Funcs:Attack()
         table.insert(bladehits, v)
     end
     if #bladehits == 0 then return end
- 
+
     local args = {
         [1] = nil,
         [2] = {},
@@ -978,7 +976,7 @@ local function IniciarLoopEstilo(settingKey, buyCallback)
                         part.CanCollide = false 
                     end
                 end
-                
+
                 -- CAMADA EXTRA DE SEGURANÇA NO NOCLIP:
                 -- Se por algum motivo externo (ataque, bug) o boneco cair abaixo do limite, joga ele pra cima na hora
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -1233,6 +1231,7 @@ Tabs.ShopTab:AddButton({
     end
 })
 
+
 local SeaDois = {
     [79091703265657] = true,
     [996949360] = true,
@@ -1249,6 +1248,7 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
                 return
             end
             task.spawn(function()
+                local FactoryPos = Vector3.new(430.98, 238.41, -433.16)
                 local FactoryDestino = CFrame.new(440.029694, 178.362595, -420.992828, 0.806989491, 4.07265439e-08, 0.590565801, -3.33742776e-08, 1, -2.33570123e-08, -0.590565801, -8.60842453e-10, 0.806989491)
                 while _G.AutoFactory do
                     pcall(function()
@@ -1256,20 +1256,31 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
                         if not char then return end
                         local hrp = char:FindFirstChild("HumanoidRootPart")
                         if not hrp then return end
+
+                        _G.ChooseWP2()
+
                         for _, part in pairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
+                        local bv = Instance.new("BodyVelocity")
+                        if (FactoryPos - hrp.Position).Magnitude > 5 then
+                            bv.Velocity = (FactoryPos - hrp.Position).Unit * _G.VelocidadeFarmBone
                         local distancia = (hrp.Position - FactoryDestino.Position).Magnitude
                         if distancia > 5 then
                             local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
                             game:GetService("TweenService"):Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = FactoryDestino}):Play()
                             task.wait(tempo)
                         else
+                            bv.Velocity = Vector3.new(0, 0, 0)
                             hrp.CFrame = FactoryDestino
                             _G.ChooseWP2()
                         end
+                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        bv.Parent = hrp
+                        task.wait(0.05)
+                        bv:Destroy()
                     end)
                     task.wait(0.05)
                 end
@@ -1294,6 +1305,7 @@ Tabs.Others:AddToggle("AutoFactoryRaidToggle", {
         end
     end
 })
+
 
 -- 1. Deixe a variável de controle no topo do script (fora da toggle e do loop)
 local Boud = false
@@ -1328,13 +1340,13 @@ local ToggleFruit = Tabs.Fruit:AddToggle("ToggleGacha", {
     Default = false,
     Callback = function(Value)
         _G.GachaAtivo = Value -- Usa uma variável global para controle
-        
+
         if _G.GachaAtivo then
             -- Cria a thread para o loop não travar o resto do seu script
             task.spawn(function()
                 local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
                 local args = {"Cousin", "Buy", "DLCBoxData"}
-                
+
                 while _G.GachaAtivo do
                     pcall(function()
                         commF:InvokeServer(unpack(args))
@@ -1500,7 +1512,7 @@ task.spawn(function()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     -- Busca o remote CommE de forma segura
     local CommE = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommE")
-    
+
     local tempoEsperaMaximo = 30 -- Tempo de Cooldown da habilidade
     local tempoPassado = 0
 
@@ -1529,7 +1541,7 @@ Tabs.ShopTab:AddButton({
     Title = "Redeem All Codes",
     Callback = function()
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
-        
+
         -- Lista de códigos atualizada e limpa de duplicatas inúteis
         local Codes = {
             "REWARDMAN", "NEWTROLL", "KITT_RESET", "Sub2CaptainMaui", "DEVSCOOKING",
@@ -1539,18 +1551,18 @@ Tabs.ShopTab:AddButton({
             "BIGNREWS", "SUB2UNCLEKIZARU", "ENYU_IS_PRO", "MAGICBUS", "JCWK",
             "STARCODEHEO", "KITTGAMING", "CHANDLER"
         }
-        
+
         -- Caminho oficial e atualizado do Remote de códigos do Blox Fruits
         local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
-        
+
         if not CommF then
             -- Fallback de aviso caso a biblioteca de notificação não esteja indexada como 'bearlib'
             print("Coelho Hub: Erro - Sistema de Remotes não encontrado.")
             return
         end
-        
+
         print("Coelho Hub: Iniciando resgate automatizado de códigos...")
-        
+
         for _, code in ipairs(Codes) do
             pcall(function()
                 -- O Blox Fruits usa InvokeServer no CommF_ passando o argumento "RedeemCode"
@@ -1559,9 +1571,9 @@ Tabs.ShopTab:AddButton({
             -- Delay de proteção de 0.5 segundos por código para o servidor processar sem dar lag ou kick
             task.wait(0.5) 
         end
-        
+
         print("Coelho Hub: Todos os códigos disponíveis foram processados!")
-        
+
         -- Se sua biblioteca de UI for do estilo Rayfield/Orion, você pode descomentar a linha abaixo para mandar um aviso visual:
         -- game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Coelho Hub", Text = "Todos os códigos foram processados!", Duration = 5})
     end
@@ -1586,7 +1598,7 @@ local function IrAteNPCSeguro(nomeDoNPC)
     local Players = game:GetService("Players")
     local Workspace = game:GetService("Workspace")
     local TweenService = game:GetService("TweenService")
-    
+
     local plr = Players.LocalPlayer
     local char = plr.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1730,7 +1742,7 @@ local BannerCreditos = nil
 
 local function criarImagem()
     if BannerCreditos then return end
-    
+
     local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("Fluent")
     if not screenGui then return end
 
@@ -1804,40 +1816,42 @@ Tabs.Creditos:AddButton({
 -- AUTO FARM CHEST - VERSÃO ULTRA EFICIENTE (COELHO HUB)
 -- ==============================================================
 
+-- Cache de Serviços e Variáveis Globais (Otimização de Memória)
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 
 local plr = Players.LocalPlayer
 
 _G.Settings = _G.Settings or {}
 _G.Settings.Farm = _G.Settings.Farm or {}
 _G.Settings.Farm["Auto Farm Chest Tween"] = false
-_G.ChestHopCount = _G.ChestHopCount or 0
+_G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350 
 
+-- 1. FUNÇÃO TWEENPLAYER OPTIMIZADA
 local function TweenPlayer(TargetCFrame)
     local char = plr.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
     local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
+
     if distancia < 5 then
         hrp.CFrame = TargetCFrame
         return
     end
 
     local velocidadeAtual = _G.VelocidadeFarmBone
-    if type(velocidadeAtual) == "function" then velocidadeAtual = 350 end
-    if not velocidadeAtual or velocidadeAtual <= 0 then velocidadeAtual = 350 end
+    if velocidadeAtual <= 0 then velocidadeAtual = 1 end 
 
     local tempoCalculado = distancia / velocidadeAtual
     local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
     tween:Play()
 
-    repeat
-        RunService.Heartbeat:Wait()
+    -- Aguarda o término do movimento de forma eficiente
+    repeat 
+        RunService.Heartbeat:Wait() 
     until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Chest Tween"]
 
     if not _G.Settings.Farm["Auto Farm Chest Tween"] then
@@ -1845,102 +1859,134 @@ local function TweenPlayer(TargetCFrame)
     end
 end
 
+-- ==============================================================
+-- AUTO FARM CHEST - MOTOR ULTRA INSTANTÂNEO (COELHO HUB)
+-- ==============================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Farm = _G.Settings.Farm or {}
+_G.Settings.Farm["Auto Farm Chest Tween"] = false
+_G.ChestHopCount = _G.ChestHopCount or 0
+
+local plr = Players.LocalPlayer
+
+-- FUNÇÃO DE SEGURANÇA: DETECTA SE VOCÊ PEGOU ITEM RARO DE BAÚ
 local function _isSpecialChestItem()
-    local character = plr.Character
-    local backpack = plr:FindFirstChild("Backpack")
-    if character and backpack then
-        if character:FindFirstChild("Fist of Darkness") or backpack:FindFirstChild("Fist of Darkness") or
-           character:FindFirstChild("Gods Chalice") or backpack:FindFirstChild("Gods Chalice") then
-            return true
-        end
-    end
-    return false
+	local character = plr.Character
+	local backpack = plr:FindFirstChild("Backpack")
+
+	if character and backpack then
+		-- Verifica se o Fist of Darkness ou Gods Chalice entraram no seu inventário
+		if character:FindFirstChild("Fist of Darkness") or backpack:FindFirstChild("Fist of Darkness") or
+		   character:FindFirstChild("Gods Chalice") or backpack:FindFirstChild("Gods Chalice") then
+			return true
+		end
+	end
+	return false
 end
 
+-- 2. O BOTÃO DA INTERFACE (MANTIDO NA MAIN)
 Tabs.Main:AddToggle("ToggleAutoChestOriginal", {
-    Title = "Auto Farm Chest",
-    Description = "",
-    Default = false,
-    Callback = function(Value)
-        _G.Settings.Farm["Auto Farm Chest Tween"] = Value
-        if not Value then
-            local char = plr.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
-            end
-        end
-    end
+	Title = "Auto Farm Chest",
+	Description = "",
+	Default = false,
+	Callback = function(Value)
+		_G.Settings.Farm["Auto Farm Chest Tween"] = Value
+		if not Value then
+			local char = plr.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				TweenService:Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
+			end
+			shouldTween = false
+		end
+	end
 })
 
+-- 3. LOOP DO NOCLIP BRUTO DE ALTA PERFORMANCE
 RunService.Stepped:Connect(function()
-    if _G.Settings.Farm["Auto Farm Chest Tween"] and plr.Character then
-        for _, part in ipairs(plr.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
+	if _G.Settings.Farm["Auto Farm Chest Tween"] and plr.Character then
+		for _, part in ipairs(plr.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide then
+				part.CanCollide = false
+			end
+		end
+	end
 end)
 
+-- 4. MOTOR PRINCIPAL ULTRA RÁPIDO COM BYPASS INTEGRADO
 task.spawn(function()
-    local chestModels = Workspace:WaitForChild("ChestModels", 5)
+	local chestModels = Workspace:WaitForChild("ChestModels", 5)
 
-    while true do
-        task.wait(0)
+	while true do
+		task.wait(0) -- Loop de frame zero para máxima velocidade
+		
+		if _G.Settings.Farm["Auto Farm Chest Tween"] then
+			pcall(function()
+				local char = plr.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if not hrp then return end
 
-        if _G.Settings.Farm["Auto Farm Chest Tween"] then
-            pcall(function()
-                local char = plr.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
+				-- SISTEMA ANTI-PERDA DE ITEM ESPECIAL
+				if _isSpecialChestItem() then
+					_G.Settings.Farm["Auto Farm Chest Tween"] = false
+					shouldTween = false
+					StarterGui:SetCore("SendNotification", {
+						Title = "Coelho Hub",
+						Text = "Item especial encontrado! Farm de Chest parado por segurança.",
+						Duration = 6
+					})
+					return
+				end
 
-                if _isSpecialChestItem() then
-                    _G.Settings.Farm["Auto Farm Chest Tween"] = false
-                    StarterGui:SetCore("SendNotification", {
-                        Title = "Coelho Hub",
-                        Text = "Item especial encontrado! Farm de Chest parado por segurança.",
-                        Duration = 6
-                    })
-                    return
-                end
-
-                chestModels = Workspace:FindFirstChild("ChestModels")
-                if chestModels then
-                    local chests = chestModels:GetChildren()
-
-                    if #chests > 0 then
-                        for i = 1, #chests do
-                            if not _G.Settings.Farm["Auto Farm Chest Tween"] or _isSpecialChestItem() then break end
-
-                            local v = chests[i]
-                            if v and v.Parent and v.Name:find("Chest") and v:FindFirstChild("RootPart") then
-                                local root = v.RootPart
-
-                                -- voa até o baú
-                                TweenPlayer(root.CFrame * CFrame.new(0, 2, 0))
-
-                                -- depois faz o bypass de colisão
-                                repeat
-                                    RunService.Heartbeat:Wait()
-                                    firetouchinterest(hrp, root, 0)
-                                    firetouchinterest(hrp, root, 1)
-                                until not _G.Settings.Farm["Auto Farm Chest Tween"] or not v.Parent or _isSpecialChestItem()
-
-                                _G.ChestHopCount = _G.ChestHopCount + 1
-                            end
-                        end
-                    else
-                        task.wait(0.1)
-                    end
-                else
-                    task.wait(0.3)
-                end
-            end)
-        else
-            task.wait(0.3)
-        end
-    end
+				chestModels = Workspace:FindFirstChild("ChestModels")
+				if chestModels then
+					local chests = chestModels:GetChildren()
+					
+					if #chests > 0 then
+						for i = 1, #chests do
+							if not _G.Settings.Farm["Auto Farm Chest Tween"] or _isSpecialChestItem() then break end
+							
+							local v = chests[i]
+							if v and v.Parent and v.Name:find("Chest") and v:FindFirstChild("RootPart") then
+								local root = v.RootPart
+								
+								-- LOOP RÍGIDO: Prende e executa o bypass de movimento do Eclipse no baú atual
+								repeat
+									RunService.Heartbeat:Wait()
+									
+									-- Teleporta e faz a oscilação de 2 studs para registrar a colisão nativa
+									hrp.CFrame = root.CFrame * CFrame.new(0, 2, 0)
+									task.wait(0.02)
+									hrp.CFrame = root.CFrame * CFrame.new(0, -2, 0)
+									
+									-- Dispara o toque via executor por segurança dupla
+									firetouchinterest(hrp, root, 0)
+									firetouchinterest(hrp, root, 1)
+									
+								until not _G.Settings.Farm["Auto Farm Chest Tween"] or not v.Parent or _isSpecialChestItem()
+								
+								_G.ChestHopCount = _G.ChestHopCount + 1
+							end
+						end
+					else
+						-- Se a pasta estiver vazia, espera um pouco para poupar a CPU
+						task.wait(0.1)
+					end
+				else
+					task.wait(0.3)
+				end
+			end)
+		else
+			task.wait(0.3) -- Delay econômico quando o botão está desligado
+		end
+	end
 end)
 
 -- ==============================================================
@@ -1967,7 +2013,7 @@ local function TweenPlayer(TargetCFrame)
     if not hrp then return end
 
     local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
-    
+
     if distancia < 5 then
         hrp.CFrame = TargetCFrame
         return
@@ -1975,16 +2021,16 @@ local function TweenPlayer(TargetCFrame)
 
     local velocidadeAtual = _G.VelocidadeFarmBone
     if velocidadeAtual <= 0 then velocidadeAtual = 1 end 
-    
+
     local tempoCalculado = distancia / velocidadeAtual
     local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
     tween:Play()
-    
+
     -- Aguarda o término do movimento de forma eficiente
     repeat 
         RunService.Heartbeat:Wait() 
     until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Fruit Tween"]
-    
+
     if not _G.Settings.Farm["Auto Farm Fruit Tween"] then
         tween:Cancel()
     end
@@ -2024,26 +2070,26 @@ task.spawn(function()
         if _G.Settings.Farm["Auto Farm Fruit Tween"] then
             local items = Workspace:GetChildren()
             local frutaEncontradaNoTurno = false
-            
+
             -- Varre o Workspace usando o seu loop numérico indexado de alta performance
             for i = 1, #items do
                 if not _G.Settings.Farm["Auto Farm Fruit Tween"] then break end
-                
+
                 local v = items[i]
                 local handle = v and v:FindFirstChild("Handle")
-                
+
                 -- Se encontrar uma fruta no mapa, vai até ela (Tween) por ordem de aparição
                 if handle and v.Name:find("Fruit") then
                     frutaEncontradaNoTurno = true
-                    
+
                     -- Fica preso na fruta atual indo até ela e pegando até que ela suma do mapa
                     repeat
                         RunService.Heartbeat:Wait()
                         TweenPlayer(handle.CFrame)
-                        
+
                         local char = plr.Character
                         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                        
+
                         if hrp and handle then
                             -- Força a coleta por toque físico direto na fruta
                             firetouchinterest(hrp, handle, 0)
@@ -2053,7 +2099,7 @@ task.spawn(function()
                     until not _G.Settings.Farm["Auto Farm Fruit Tween"] or not v.Parent
                 end
             end
-            
+
             -- Se varreu o servidor inteiro e não achou mais nenhuma fruta, espera antes de checar de novo
             if not frutaEncontradaNoTurno then
                 task.wait(1) -- Delay inteligente para economizar CPU quando o server estiver limpo
@@ -2063,77 +2109,6 @@ task.spawn(function()
         end
     end
 end)
-
-_G.AutoBuyBones = false -- Começa desligado
-
--- TOGGLE PARA COMPRAR COM BONES
-Tabs.Main:AddToggle("AutoBuyBonesToggle", {
-    Title = "random bones",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoBuyBones = Value
-        
-        if Value then
-            task.spawn(function()
-                while _G.AutoBuyBones do
-                    pcall(function()
-                        -- Executa o remote enviado com os seus argumentos
-                        local args = {
-                            "Bones",
-                            "Buy",
-                            1,
-                            1
-                        }
-                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
-                    end)
-                    task.wait(0.5) -- Intervalo entre cada compra (ajuste se quiser mais rápido ou mais lento)
-                end
-            end)
-        end
-    end
-})
-
-_G.BringMobRadius = 300 -- Começa em 300 (Desativado)
-
--- 1. O SLIDER NA ABA CONFIG
-Tabs.Config:AddSlider("BringMobRadiusSlider", {
-    Title = "Bring Mob Distance",
-    Description = "bring mob",
-    Min = 300,
-    Max = 500,
-    Default = 300,
-    Rounding = 0,
-    Callback = function(Value)
-        _G.BringMobRadius = Value
-    end
-})
-
--- 2. A FUNÇÃO ISOLADA COM AJUSTE DE ALTURA (-3 STUDS)
-_G.BringMobFuncion = function(alvoPrincipal)
-    -- Só executa se o slider estiver acima de 300
-    if not _G.BringMobRadius or _G.BringMobRadius <= 300 then return end
-    
-    local character = game.Players.LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Varre a pasta de inimigos
-    for _, mob in pairs(workspace.Enemies:GetChildren()) do
-        local mobHrp = mob:FindFirstChild("HumanoidRootPart")
-        local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-        
-        -- Verifica se o mob está vivo e ignora o alvo principal do voo
-        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= alvoPrincipal then
-            local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
-            
-            -- Se estiver dentro do raio definido no Slider, puxa exatamente 3 studs abaixo
-            if distanciaMob <= _G.BringMobRadius then
-                -- O CFrame pega a sua posição e subtrai 3 studs apenas na altura (eixo Y)
-            mobHrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, -3, 0))
-            end
-        end
-    end
-end
 
 repeat wait() until game:IsLoaded()
 
@@ -2157,6 +2132,7 @@ _G.BaitAmount = 10
 _G.SelectedBait = "Basic Bait"
 _G.AutoCraftBait = false
 
+-- 1. DROPDOWN APENAS COM A BASIC BAIT
 local Sea2Ids = {[79091703265657] = true, [996949360] = true}
 local Sea3Ids = {[7449423635] = true, [100117331123089] = true}
 
@@ -2173,6 +2149,7 @@ end
 
 Tabs.Others:AddDropdown("BaitSelector", {
     Title = "Select Bait Type",
+    Values = {"Basic Bait"}, -- Apenas a Basic Bait disponível
     Values = {"Basic Bait", "Abyssal Bait"},
     Default = "Basic Bait",
     Callback = function(Value)
@@ -2180,6 +2157,7 @@ Tabs.Others:AddDropdown("BaitSelector", {
     end
 })
 
+-- 2. TOGGLE PARA CRAFTAR
 Tabs.Others:AddToggle("AutoCraftBait", {
     Title = "Craft Bait",
     Default = false,
@@ -2190,7 +2168,19 @@ Tabs.Others:AddToggle("AutoCraftBait", {
                 while _G.AutoCraftBait do
                     pcall(function()
                         if not _G.AutoCraftBait then return end
+                        
                         local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            -- Teleporte para o local de craft
+                            hrp.CFrame = CFrame.new(26.5670776, 10.6520329, 5344.48633, -0.961029828, 1.24920945e-08, -0.276444763, 2.37652227e-08, 1, -3.74287907e-08, 0.276444763, -4.2539952e-08, -0.961029828)
+                            task.wait(0.5)
+                            
+                            if not _G.AutoCraftBait then return end
+                            
+                            -- Envia o comando para craftar a isca selecionada
+                            local args = {"Craft", _G.SelectedBait, _G.BaitAmount, {}}
+                            game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RF/Craft"):InvokeServer(unpack(args))
+                        end
                         if not hrp then return end
 
                         local destino = GetAnglerCFrame()
@@ -2204,6 +2194,7 @@ Tabs.Others:AddToggle("AutoCraftBait", {
                         local args = {"Craft", _G.SelectedBait, _G.BaitAmount, {}}
                         game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RF/Craft"):InvokeServer(unpack(args))
                     end)
+                    task.wait(1) -- Tempo de espera entre cada tentativa de craft
                     task.wait(1)
                 end
             end)
@@ -2250,644 +2241,192 @@ Tabs.PvpTab:AddButton({
     end
 })
 
-_G.Test = false
+_G.AutoFarmInimigos = false -- Começa desligado na Toggle
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local CFrameEspera = CFrame.new(-9502.07227, 501.75415, 6012.94678, 0.0197974183, 0.000531507714, 0.999803841, 0.00015926265, 0.999999821, -0.000534765481, -0.99980402, 0.000169818391, 0.0197973307)
+-- Função para mover o jogador usando o seu Slider (_G.VelocidadeFarmBone)
+local function voarAteInimigo(posicaoAlvo)
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-local Sea3Ids = {
-    [7449423635] = true,
-    [100117331123089] = true,
-}
-
-local indexList = {3, 4, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 22}
-
-local function getNPCs()
-    local vivos = {}
-    local enemies = workspace.Enemies
-
-    local namedMobs = {"Reborn Skeleton", "Posessed Mummy", "Living Zombie"}
-    for _, name in ipairs(namedMobs) do
-        local mob = enemies:FindFirstChild(name)
-        if mob then
-            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
-            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                table.insert(vivos, mob)
-            end
-        end
-    end
-
-    for _, index in ipairs(indexList) do
-        local mob = enemies:GetChildren()[index]
-        if mob then
-            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
-            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                table.insert(vivos, mob)
-            end
-        end
-    end
-
-    return vivos
-end
-
-local function voarAte(hrp, posicaoAlvo)
     local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    -- Usa diretamente a velocidade do seu Slider, com um fallback de segurança caso seja 0
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350 
     local duracao = distancia / velocidade
-    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
+
+    local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(posicaoAlvo)})
+
     tween:Play()
-    tween.Completed:Wait()
+    return tween
 end
 
-Tabs.Main:AddToggle("Test", {
-    Title = "Farm Bone",
+-- TOGGLE PARA O SEU MENU
+Tabs.Main:AddToggle("AutoFarmInimigosToggle", {
+    Title = "Auto Farm bone",
     Default = false,
     Callback = function(Value)
-        _G.Test = Value
+        _G.AutoFarmInimigos = Value
 
         if Value then
             task.spawn(function()
-                if not Sea3Ids[game.PlaceId] then
-                    _G.Test = false
-                    return
-                end
-
-                local character = LocalPlayer.Character
-                local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                voarAte(hrp, CFrameEspera.Position)
-
-                while _G.Test do
-                    pcall(function()
-                        character = LocalPlayer.Character
-                        hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then return end
-
-                        local lista = getNPCs()
-
-                        if #lista == 0 then
-                            task.wait(0.5)
-                            return
-                        end
-
-                        for _, inimigo in ipairs(lista) do
-                            if not _G.Test then break end
-
-                            local mobHrp = inimigo:FindFirstChild("HumanoidRootPart")
-                            local mobHumanoid = inimigo:FindFirstChildOfClass("Humanoid")
-
-                            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                                _G.ChooseWP2()
-                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
-
-                                while _G.Test and inimigo.Parent and mobHumanoid and mobHumanoid.Health > 0 do
-                                    character = LocalPlayer.Character
-                                    hrp = character and character:FindFirstChild("HumanoidRootPart")
-                                    if not hrp then break end
-                                    _G.ChooseWP2()
-                                    voarAte(hrp, mobHrp.Position + Vector3.new(0, 10, 0))
-                                end
-                            end
-                        end
-                    end)
-                end
-            end)
-        end
-    end
-})
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-
-_G.TestVoarCakePrince = false
-
--- =====================================================================
--- FUNÇÃO DE VOO COMPATÍVEL COM ANTI-CHEAT (COMPLETA SEM CORTES)
--- =====================================================================
-local function voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
-    -- Evita que o anti-cheat detecte o estado de "Falling" ou "Freefall"
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-    
-    -- Cria uma força de velocidade linear nativa se ela não existir
-    local bv = hrp:FindFirstChild("AntiCheatFlyForce")
-    if not bv then
-        bv = Instance.new("BodyVelocity")
-        bv.Name = "AntiCheatFlyForce"
-        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9) -- Força total contra a gravidade
-        bv.Parent = hrp
-    end
-    
-    -- Mantém o loop de movimentação suave atualizando frame por frame
-    while _G.TestVoarCakePrince and hrp and hrp.Parent and (hrp.Position - posicaoAlvo).Magnitude > 3 do
-        local distanciaVector = (posicaoAlvo - hrp.Position)
-        local direcao = distanciaVector.Unit
-        local distancia = distanciaVector.Magnitude
-        
-        -- Puxa o controle do seu Slider principal de velocidade
-        local velocidadeMax = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 300
-        
-        -- OTIMIZAÇÃO ANTI-CHEAT: Reduz a velocidade na chegada para não dar tranco
-        local velocidadeAtual = distancia < 15 and (velocidadeMax * 0.4) or velocidadeMax
-        
-        -- Aplica a velocidade fisicamente na direção correta
-        bv.Velocity = direcao * velocidadeAtual
-        
-        -- Faz o personagem olhar fixamente para o alvo (evita giros doidos)
-        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(posicaoAlvo.X, hrp.Position.Y, posicaoAlvo.Z))
-        
-        RunService.Heartbeat:Wait()
-    end
-end
-
--- =====================================================================
--- TOGGLE NA ABA STACK (Ajustado e Limpo)
--- =====================================================================
-Tabs.Stack:AddToggle("TestVoarCakePrince", {
-    Title = "kill cake prince",
-    Default = false,
-    Callback = function(Value)
-        _G.TestVoarCakePrince = Value
-
-        if Value then
-            task.spawn(function()
-                while _G.TestVoarCakePrince do
+                while _G.AutoFarmInimigos do
                     pcall(function()
                         local character = LocalPlayer.Character
                         local hrp = character and character:FindFirstChild("HumanoidRootPart")
                         local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                        
-                        if not hrp or not humanoid or humanoid.Health <= 0 then 
-                            task.wait(0.5)
-                            return 
-                        end
 
-                        -- Escaneamento de localização do Boss
-                        local boss = workspace:FindFirstChild("Enemies") and workspace.Enemies:FindFirstChild("Cake Prince") or workspace:FindFirstChild("Cake Prince")
+                        if hrp and humanoid and humanoid.Health > 0 then
 
-                        if not boss then
-                            -- Se não achar o boss, limpa a força física para não bugar
-                            local bv = hrp:FindFirstChild("AntiCheatFlyForce")
-                            if bv then bv:Destroy() end
-                            task.wait(0.5)
-                            return
-                        end
-
-                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
-                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
-
-                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            -- Equip Weapon nativo (Fica forçando o clique/equip)
-                            if type(_G.ChooseWP2) == "function" and not character:FindFirstChildOfClass("Tool") then
-                                _G.ChooseWP2()
-                            end
-
-                            -- Calcula a posição de ataque seguro (3 studs acima do alvo)
-                            local posicaoAlvo = bossHrp.Position + Vector3.new(0, 3, 0)
-                            
-                            -- Inicia o voo físico suave bypassando o anti-cheat
-                            voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
-                        end
-                    end)
-                    task.wait(0.05)
-                end
-                
-                -- Limpeza absoluta ao desligar a Toggle manual
-                pcall(function()
-                    local character = LocalPlayer.Character
-                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                    
-                    if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
-                        hrp.AntiCheatFlyForce:Destroy()
-                    end
-                    if humanoid then
-                        humanoid:ChangeState(Enum.HumanoidStateType.Standing)
-                    end
-                end)
-            end)
-        end
-    end
-})
-
-_G.TeleportKitsune = false
-
-local TweenService = game:GetService("TweenService")
-
-local function voarAte(hrp, posicaoAlvo)
-    local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    if distancia < 2 then return end
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-    local duracao = distancia / velocidade
-    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
-    tween:Play()
-    local timeout = tick() + duracao + 1
-    repeat
-        task.wait(math.random(1, 3) / 10)
-    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.TeleportKitsune
-end
-
-Tabs.Stack:AddToggle("TeleportKitsune", {
-    Title = "Teleport Kitsune Island",
-    Default = false,
-    Callback = function(Value)
-        _G.TeleportKitsune = Value
-
-        if Value then
-            task.spawn(function()
-                local character = game.Players.LocalPlayer.Character
-                local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                local destino = workspace._WorldOrigin.Locations["Kitsune Island"]
-                if not destino then return end
-
-                -- cooldown aleatório antes de começar o voo
-                task.wait(math.random(5, 15) / 10)
-
-                _G.ChooseWP2()
-                voarAte(hrp, destino.Position)
-
-                _G.TeleportKitsune = false
-            end)
-        end
-    end
-})
-
-_G.AutoKillPlayer = false -- Controle da Toggle
-
-Tabs.PvpTab:AddToggle("FollowPlayerToggle", {
-    Title = "Voar ate Jogador",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoKillPlayer = Value
-        
-        if Value then
-            task.spawn(function()
-                -- O loop principal SÓ PARA se a toggle for desligada
-                while _G.AutoKillPlayer do
-                    local targetPlayer = selectedPlayer and game.Players:FindFirstChild(selectedPlayer)
-                    
-                    -- VERIFICAÇÃO: Se o jogador saiu do server, desliga a toggle e para o farm
-                    if not targetPlayer then
-                        warn("O jogador selecionado saiu do servidor!")
-                        _G.AutoKillPlayer = false
-                        -- Aqui você pode atualizar a sua UI para falso se a sua biblioteca permitir (ex: FollowPlayerToggle:Set(false))
-                        break
-                    end
-                    
-                    pcall(function()
-                        local targetChar = targetPlayer.Character
-                        local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
-                        local targetHumanoid = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
-                        
-                        local myChar = game.Players.LocalPlayer.Character
-                        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                        local myHumanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
-                        
-                        -- Verifica se ambos estão vivos e com os corpos carregados
-                        if targetHrp and targetHumanoid and myHrp and myHumanoid and myHumanoid.Health > 0 then
-                            
-                            -- Executa a SUA função de equipar arma
+                            -- Executa a SUA função de equipar que está na imagem 1
                             if type(_G.ChooseWP2) == "function" then
                                 _G.ChooseWP2()
                             end
-                            
-                            -- Calcula o trajeto com base no seu Slider de velocidade
-                            local distancia = (myHrp.Position - targetHrp.Position).Magnitude
-                            local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-                            local duracao = distancia / velocidade
-                            
-                            local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
-                            local tween = game:GetService("TweenService"):Create(myHrp, tweenInfo, {CFrame = targetHrp.CFrame})
-                            
-                            tween:Play()
-                            
-                            -- ESPERA CHEGAR: Espera o voo terminar ou o alvo morrer antes de recalcular
-                            -- Isso evita travamentos e faz o voo ser 100% fluido
-                            while tween.PlaybackState == Enum.PlaybackState.Playing and _G.AutoKillPlayer and targetHumanoid.Health > 0 and targetPlayer.Parent == game.Players do
-                                task.wait(0.1)
-                            end
-                            
-                            tween:Cancel() -- Cancela o tween antigo para iniciar o próximo limpo
-                        end
-                    end)
-                    
-                    task.wait(0.2) -- Pequena pausa de segurança antes de checar o alvo novamente
-                end
-            end)
-        end
-    end
-})
 
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
+                            local inimigoAtual = nil
+                            local listaInimigos = workspace.Enemies:GetChildren()
 
-local LocalPlayer = Players.LocalPlayer
-local EnemiesFolder = Workspace:WaitForChild("Enemies")
+                            -- Varre a pasta procurando o primeiro inimigo vivo para focar o voo
+                            for _, inimigo in pairs(listaInimigos) do
+                                local enemyHumanoid = inimigo:FindFirstChildOfClass("Humanoid")
+                                local enemyHrp = inimigo:FindFirstChild("HumanoidRootPart")
 
--- Função padrão de voo implacável com controle de velocidade (_G.VelocidadeFarmBone)
-local function voarAteSoulReaper(hrp, posicaoAlvo)
-    local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    if distancia < 2 then return end
-    
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-    local duracao = distancia / velocidade
-    
-    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
-    tween:Play()
-    
-    local timeout = tick() + duracao + 0.5
-    repeat
-        task.wait(0.05)
-    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.KillSoulReaper
-    
-    if not _G.KillSoulReaper then tween:Cancel() end
-end
-
--- TOGGLE PARA MATAR O SOUL REAPER NA TAB STACK
-_G.KillSoulReaper = false
-
-Tabs.Stack:AddToggle("KillSoulReaperToggle", {
-    Title = "Kill Soul Reaper",
-    Default = false,
-    Callback = function(Value)
-        _G.KillSoulReaper = Value
-        
-        if Value then
-            task.spawn(function()
-                -- O loop só para se o boss morrer/sumir ou se você desligar a toggle
-                while _G.KillSoulReaper do
-                    pcall(function()
-                        local character = LocalPlayer.Character
-                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                        
-                        -- Se você morrer ou resetar, espera o seu corpo spawnar de novo
-                        if not hrp or not humanoid or humanoid.Health <= 0 then
-                            task.wait(0.5)
-                            return
-                        end
-                        
-                        -- Verifica se o Soul Reaper está na pasta e vivo
-                        local boss = EnemiesFolder:FindFirstChild("Soul Reaper")
-                        if not boss then
-                            warn("Soul Reaper nao encontrado ou ja foi derrotado!")
-                            _G.KillSoulReaper = false -- Desliga automaticamente se ele sumir
-                            return
-                        end
-                        
-                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
-                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
-                        
-                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            -- EQUIP WEAPON (Garante a arma se a mão estiver vazia)
-                            if not character:FindFirstChildOfClass("Tool") and type(_G.ChooseWP2) == "function" then 
-                                _G.ChooseWP2() 
-                            end
-                            
-                            -- Voa exatamente 3 studs acima dele para descer a lenha com segurança
-                            voarAteSoulReaper(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
-                            
-                            -- Se o Bring Mob estiver ativo, ajuda a puxar se tiver mais bicho perto
-                            if type(_G.BringMobFuncion) == "function" then
-                                _G.BringMobFuncion(boss)
-                            end
-                        else
-                            -- Se a vida dele zerou, o farm acabou!
-                            warn("Soul Reaper foi de base! Desligando farm.")
-                            _G.KillSoulReaper = false
-                        end
-                    end)
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end
-})
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
-local LocalPlayer = Players.LocalPlayer
-
--- VARIÁVEIS DE CONTROLE
-_G.BarcoSelecionado = "Guardian" -- Ajustado para começar com a primeira letra maiúscula (Padrão Workspace)
-_G.AutoSpawnBoat = false
-
--- Conexão para manter o Noclip ativo
-local NoclipConnection = nil
-
--- FUNÇÃO DE VOO FÍSICO ANTI-CHEAT
-local function voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-    
-    local bv = hrp:FindFirstChild("AntiCheatFlyForce")
-    if not bv then
-        bv = Instance.new("BodyVelocity")
-        bv.Name = "AntiCheatFlyForce"
-        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Parent = hrp
-    end
-    
-    while _G.AutoSpawnBoat and hrp and hrp.Parent and (hrp.Position - posicaoAlvo).Magnitude > 4 do
-        local distanciaVector = (posicaoAlvo - hrp.Position)
-        local direcao = distanciaVector.Unit
-        
-        bv.Velocity = direcao * 85 -- Velocidade segura para evitar Kick
-        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(posicaoAlvo.X, hrp.Position.Y, posicaoAlvo.Z))
-        
-        RunService.Heartbeat:Wait()
-    end
-    
-    if bv then bv:Destroy() end
-    humanoid:ChangeState(Enum.HumanoidStateType.Standing)
-end
-
--- FUNÇÃO PARA ATIVAR/DESATIVAR NOCLIP
-local function setNoclip(state)
-    if state then
-        if not NoclipConnection then
-            NoclipConnection = RunService.Stepped:Connect(function()
-                local character = LocalPlayer.Character
-                if character then
-                    for _, part in ipairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") and part.CanCollide then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end)
-        end
-    else
-        if NoclipConnection then
-            NoclipConnection:Disconnect()
-            NoclipConnection = nil
-        end
-    end
-end
-
--- 1. DROPDOWN DE SELEÇÃO DO BARCO
-Tabs.seaevent:AddDropdown("DropdownBarcos", {
-    Title = "Selecionar Barco",
-    Values = {"Guardian"},
-    CurrentOption = "Guardian",
-    Callback = function(Value)
-        _G.BarcoSelecionado = Value
-    end
-})
-
--- 2. TOGGLE PARA EXECUTAR TODO O PROCESSO
-Tabs.seaevent:AddToggle("AutoSpawnBoatToggle", {
-    Title = "Spawn boat",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoSpawnBoat = Value
-        
-        if Value then
-            task.spawn(function()
-                pcall(function()
-                    local character = LocalPlayer.Character
-                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                    
-                    if not hrp or not humanoid or humanoid.Health <= 0 then return end
-                    
-                    -- ETAPA 1: Voar até o Luxury Boat Dealer
-                    local dealerPart = Workspace:FindFirstChild("NPCs") and Workspace.NPCs:FindFirstChild("Luxury Boat Dealer") and Workspace.NPCs["Luxury Boat Dealer"]:FindFirstChild("UpperTorso")
-                    
-                    if dealerPart then
-                        voarFisicoAntiCheat(hrp, dealerPart.Position, humanoid)
-                        if not _G.AutoSpawnBoat then return end
-                        task.wait(0.3)
-                        
-                        -- ETAPA 2: Executa os args e o remote JUNTOS para comprar o barco (Apenas uma vez)
-                        local args = {
-                            "BuyBoat",
-                            _G.BarcoSelecionado
-                        }
-                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
-                        
-                        -- Espera o delay de rede para o jogo registrar a compra e instanciar o objeto
-                        task.wait(1.5) 
-                    else
-                        warn("UpperTorso do Luxury Boat Dealer não encontrado!")
-                        return -- Cancela a execução se não achou o NPC comprador
-                    end
-                    
-                    -- ETAPA 3: SÓ VAI PARA O ASSENTO SE TIVER COMPRADO (Verifica se existe na Workspace pós-compra)
-                    if _G.AutoSpawnBoat then
-                        local pastaBoats = Workspace:FindFirstChild("Boats")
-                        local meuBarco = pastaBoats and pastaBoats:FindFirstChild(_G.BarcoSelecionado)
-                        local assento = meuBarco and meuBarco:FindFirstChild("VehicleSeat")
-                        
-                        if assento then
-                            -- Ativa o noclip para não dar trancos físicos na estrutura do barco
-                            setNoclip(true)
-                            
-                            -- Voa em direção ao banco
-                            voarFisicoAntiCheat(hrp, assento.Position, humanoid)
-                            
-                            -- Força o personagem a sentar ao alcançar a distância
-                            if _G.AutoSpawnBoat and (hrp.Position - assento.Position).Magnitude <= 5 then
-                                if humanoid.SeatPart ~= assento then
-                                    assento:Sit(humanoid)
+                                if enemyHrp and enemyHumanoid and enemyHumanoid.Health > 0 then
+                                    inimigoAtual = inimigo
+                                    break
                                 end
                             end
-                        else
-                            warn("VehicleSeat do barco comprado não foi localizado!")
+
+                            -- Se achar o alvo, voa até ele até sumir ou morrer
+                            if inimigoAtual then
+                                local enemyHrp = inimigoAtual:FindFirstChild("HumanoidRootPart")
+                                local enemyHumanoid = inimigoAtual:FindFirstChildOfClass("Humanoid")
+
+                                while _G.AutoFarmInimigos and inimigoAtual.Parent == workspace.Enemies and enemyHumanoid and enemyHumanoid.Health > 0 do
+                                    if enemyHrp then
+                                        voarAteInimigo(enemyHrp.Position)
+                                    end
+
+                                    -- INTEGRACAO DO BRING MOB RADIUS
+                                    -- Se o slider for maior que 300, executa a atração dos outros mobs
+                                    if _G.BringMobRadius and _G.BringMobRadius > 300 then
+                                        for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                                            local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+                                            local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+
+                                            -- Puxa se o mob estiver vivo e NÃO for o seu alvo atual do voo
+                                            if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= inimigoAtual then
+                                                local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
+
+                                                -- Só teleporta se estiver dentro do raio estipulado no Slider
+                                                if distanciaMob <= _G.BringMobRadius then
+                                                    mobHrp.CFrame = hrp.CFrame
+                                                end
+                                            end
+                                        end
+                                    end
+
+                                    task.wait(0.1) -- Atualização rápida do Tween e do Bring Mob
+                                end
+                            end
                         end
-                    end
-                    
-                    -- Finaliza o noclip após sentar ou encerrar o fluxo linear do script
-                    setNoclip(false)
-                end)
-            end)
-        else
-            -- Limpeza completa de instâncias e travas caso a toggle seja desligada
-            setNoclip(false)
-            pcall(function()
-                local character = LocalPlayer.Character
-                local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
-                    hrp.AntiCheatFlyForce:Destroy()
+                    end)
+                    task.wait(0.2) -- Pausa rápida antes de puxar o próximo inimigo vivo
                 end
             end)
         end
     end
 })
 
-_G.KillRipIndra = false
+_G.AutoBuyBones = false -- Começa desligado
 
--- TOGGLE PARA CAÇAR O RIP INDRA TRUE FORM
-Tabs.Stack:AddToggle("KillRipIndraToggle", {
-    Title = "Kill Rip Indra",
+-- TOGGLE PARA COMPRAR COM BONES
+Tabs.Main:AddToggle("AutoBuyBonesToggle", {
+    Title = "random bones",
     Default = false,
     Callback = function(Value)
-        _G.KillRipIndra = Value
+        _G.AutoBuyBones = Value
 
         if Value then
             task.spawn(function()
-                while _G.KillRipIndra do
+                while _G.AutoBuyBones do
                     pcall(function()
-                        local character = LocalPlayer.Character
-                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                        
-                        if not hrp or not humanoid or humanoid.Health <= 0 then 
-                            task.wait(0.5)
-                            return 
-                        end
-
-                        -- Escaneia a localização exata na pasta workspace.Enemies
-                        local boss = workspace:FindFirstChild("Enemies") and workspace.Enemies:FindFirstChild("rip_indra True Form") or workspace:FindFirstChild("rip_indra True Form")
-
-                        -- Se o Boss não estiver spawnado no servidor, limpa as forças e espera
-                        if not boss then
-                            local bv = hrp:FindFirstChild("AntiCheatFlyForce")
-                            if bv then bv:Destroy() end
-                            task.wait(0.5)
-                            return
-                        end
-
-                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
-                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
-
-                        -- Se o rip_indra estiver vivo, desce o cacete nele
-                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            
-                            -- Executa a sua função nativa de equipar a arma para atacar
-                            if type(_G.ChooseWP2) == "function" and not character:FindFirstChildOfClass("Tool") then
-                                _G.ChooseWP2()
-                            end
-
-                            -- Calcula o ponto cego (3 studs acima da cabeça dele para atacar com total segurança)
-                            local posicaoAlvo = bossHrp.Position + Vector3.new(0, 3, 0)
-                            
-                            -- Inicia o voo físico suave travando no Boss
-                            voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
-                        end
+                        -- Executa o remote enviado com os seus argumentos
+                        local args = {
+                            "Bones",
+                            "Buy",
+                            1,
+                            1
+                        }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
                     end)
-                    task.wait(0.05)
+                    task.wait(0.5) -- Intervalo entre cada compra (ajuste se quiser mais rápido ou mais lento)
                 end
-                
-                -- Limpeza absoluta ao desligar a Toggle manualmente para você não ficar flutuando
-                pcall(function()
-                    local character = LocalPlayer.Character
-                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                    if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
-                        hrp.AntiCheatFlyForce:Destroy()
-                    end
-                end)
             end)
         end
     end
+})
+
+_G.BringMobRadius = 300 -- Começa em 300 (Desativado)
+
+-- 1. O SLIDER NA ABA CONFIG
+Tabs.Config:AddSlider("BringMobRadiusSlider", {
+    Title = "Bring Mob Distance",
+    Description = "bring mob",
+    Min = 300,
+    Max = 500,
+    Default = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.BringMobRadius = Value
+    end
+})
+
+-- 2. A FUNÇÃO ISOLADA COM AJUSTE DE ALTURA (-3 STUDS)
+_G.BringMobFuncion = function(alvoPrincipal)
+    -- Só executa se o slider estiver acima de 300
+    if not _G.BringMobRadius or _G.BringMobRadius <= 300 then return end
+
+    local character = game.Players.LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- Varre a pasta de inimigos
+    for _, mob in pairs(workspace.Enemies:GetChildren()) do
+        local mobHrp = mob:FindFirstChild("HumanoidRootPart")
+        local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
+
+        -- Verifica se o mob está vivo e ignora o alvo principal do voo
+        if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= alvoPrincipal then
+            local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
+
+            -- Se estiver dentro do raio definido no Slider, puxa exatamente 3 studs abaixo
+            if distanciaMob <= _G.BringMobRadius then
+                -- O CFrame pega a sua posição e subtrai 3 studs apenas na altura (eixo Y)
+            mobHrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, -3, 0))
+            end
+        end
+    end
+end
+
+repeat wait() until game:IsLoaded()
+
+local PlaceIds = {
+    [2753915549] = "World 1",
+    [4442272183] = "World 2",
+    [7449423635] = "World 3 ",
+    [79091703265657] = "Sea 2",
+    [996949360] = "Sea 2",
+    [100117331123089] = "World 3",
+}
+
+local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
+
+Tabs.Status:AddParagraph({
+    Title = "Mundo Atual",
+    Content = CurrentWorld
 })
