@@ -1,4 +1,3 @@
-#hehe updating
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -96,6 +95,7 @@ local Tabs = {
     Fruit = Window:AddTab({ Title = "Fruit", Icon = "" }),
     Teleport = Window:AddTab({ Title = "Teleport", Icon = "" }),
     Creditos = Window:AddTab({ Title = "Creditos", Icon = "" }),
+    seaevent = Window:AddTab({ Title = "Sea Event", Icon = "" }),
     PvpTab = Window:AddTab({ Title = "PvpTab", Icon = "" })
 }
 
@@ -2362,25 +2362,53 @@ Tabs.Main:AddToggle("Test", {
     end
 })
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
 _G.TestVoarCakePrince = false
 
-local TweenService = game:GetService("TweenService")
-
-local CFrameInicio = CFrame.new(-2135.04028, 70.0246201, -12396.6025, 0.995649099, -1.74269381e-08, 0.0931816623, 2.13228315e-08, 1, -4.08140401e-08, -0.0931816623, 4.26233591e-08, 0.995649099)
-
-local function voarAte(hrp, posicaoAlvo)
-    local distancia = (hrp.Position - posicaoAlvo).Magnitude
-    if distancia < 2 then return end
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
-    local duracao = distancia / velocidade
-    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
-    tween:Play()
-    local timeout = tick() + duracao + 1
-    repeat
-        task.wait(0.1)
-    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.TestVoarCakePrince
+-- =====================================================================
+-- FUNÇÃO DE VOO COMPATÍVEL COM ANTI-CHEAT (COMPLETA SEM CORTES)
+-- =====================================================================
+local function voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
+    -- Evita que o anti-cheat detecte o estado de "Falling" ou "Freefall"
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    
+    -- Cria uma força de velocidade linear nativa se ela não existir
+    local bv = hrp:FindFirstChild("AntiCheatFlyForce")
+    if not bv then
+        bv = Instance.new("BodyVelocity")
+        bv.Name = "AntiCheatFlyForce"
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9) -- Força total contra a gravidade
+        bv.Parent = hrp
+    end
+    
+    -- Mantém o loop de movimentação suave atualizando frame por frame
+    while _G.TestVoarCakePrince and hrp and hrp.Parent and (hrp.Position - posicaoAlvo).Magnitude > 3 do
+        local distanciaVector = (posicaoAlvo - hrp.Position)
+        local direcao = distanciaVector.Unit
+        local distancia = distanciaVector.Magnitude
+        
+        -- Puxa o controle do seu Slider principal de velocidade
+        local velocidadeMax = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 300
+        
+        -- OTIMIZAÇÃO ANTI-CHEAT: Reduz a velocidade na chegada para não dar tranco
+        local velocidadeAtual = distancia < 15 and (velocidadeMax * 0.4) or velocidadeMax
+        
+        -- Aplica a velocidade fisicamente na direção correta
+        bv.Velocity = direcao * velocidadeAtual
+        
+        -- Faz o personagem olhar fixamente para o alvo (evita giros doidos)
+        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(posicaoAlvo.X, hrp.Position.Y, posicaoAlvo.Z))
+        
+        RunService.Heartbeat:Wait()
+    end
 end
 
+-- =====================================================================
+-- TOGGLE NA ABA STACK (Ajustado e Limpo)
+-- =====================================================================
 Tabs.Stack:AddToggle("TestVoarCakePrince", {
     Title = "kill cake prince",
     Default = false,
@@ -2391,13 +2419,22 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
             task.spawn(function()
                 while _G.TestVoarCakePrince do
                     pcall(function()
-                        local character = game.Players.LocalPlayer.Character
+                        local character = LocalPlayer.Character
                         local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                        if not hrp then return end
+                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        
+                        if not hrp or not humanoid or humanoid.Health <= 0 then 
+                            task.wait(0.5)
+                            return 
+                        end
 
-                        local boss = game:GetService("ReplicatedStorage"):FindFirstChild("Cake Prince")
+                        -- Escaneamento de localização do Boss
+                        local boss = workspace:FindFirstChild("Enemies") and workspace.Enemies:FindFirstChild("Cake Prince") or workspace:FindFirstChild("Cake Prince")
 
                         if not boss then
+                            -- Se não achar o boss, limpa a força física para não bugar
+                            local bv = hrp:FindFirstChild("AntiCheatFlyForce")
+                            if bv then bv:Destroy() end
                             task.wait(0.5)
                             return
                         end
@@ -2406,22 +2443,34 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
                         local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
 
                         if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            -- voa pro CFrame inicial e espera 5 segundos antes de ir matar
-                            voarAte(hrp, CFrameInicio.Position)
-                            task.wait(5)
-
-                            while _G.TestVoarCakePrince and boss.Parent and bossHumanoid.Health > 0 do
-                                character = game.Players.LocalPlayer.Character
-                                hrp = character and character:FindFirstChild("HumanoidRootPart")
-                                if not hrp then break end
-
+                            -- Equip Weapon nativo (Fica forçando o clique/equip)
+                            if type(_G.ChooseWP2) == "function" and not character:FindFirstChildOfClass("Tool") then
                                 _G.ChooseWP2()
-                                voarAte(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
                             end
+
+                            -- Calcula a posição de ataque seguro (3 studs acima do alvo)
+                            local posicaoAlvo = bossHrp.Position + Vector3.new(0, 3, 0)
+                            
+                            -- Inicia o voo físico suave bypassando o anti-cheat
+                            voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
                         end
                     end)
-                    task.wait(0.2)
+                    task.wait(0.05)
                 end
+                
+                -- Limpeza absoluta ao desligar a Toggle manual
+                pcall(function()
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                    
+                    if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
+                        hrp.AntiCheatFlyForce:Destroy()
+                    end
+                    if humanoid then
+                        humanoid:ChangeState(Enum.HumanoidStateType.Standing)
+                    end
+                end)
             end)
         end
     end
@@ -2537,25 +2586,308 @@ Tabs.PvpTab:AddToggle("FollowPlayerToggle", {
     end
 })
 
-Tabs.Races:Section({
-	Title = "V2",
-	TextXAlignment = "Left"
-});
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
-Tabs.PvpTab:Toggle("AutoActivatePvP",{
-	Title = "Auto Activate PvP",
-	Desc = "",
-	Value = false,
-	Callback = function(v)
-		if v then
-			spawn(function()
-				while v do
-					pcall(function()
-						(game:GetService("ReplicatedStorage")).Remotes.CommF_:InvokeServer("ActivatePvp", true);
-					end);
-					task.wait(5);
-				end;
-			end);
-		end;
-	end
-});
+local LocalPlayer = Players.LocalPlayer
+local EnemiesFolder = Workspace:WaitForChild("Enemies")
+
+-- Função padrão de voo implacável com controle de velocidade (_G.VelocidadeFarmBone)
+local function voarAteSoulReaper(hrp, posicaoAlvo)
+    local distancia = (hrp.Position - posicaoAlvo).Magnitude
+    if distancia < 2 then return end
+    
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
+    local duracao = distancia / velocidade
+    
+    local tween = TweenService:Create(hrp, TweenInfo.new(duracao, Enum.EasingStyle.Linear), {CFrame = CFrame.new(posicaoAlvo)})
+    tween:Play()
+    
+    local timeout = tick() + duracao + 0.5
+    repeat
+        task.wait(0.05)
+    until (hrp.Position - posicaoAlvo).Magnitude < 3 or tick() > timeout or not _G.KillSoulReaper
+    
+    if not _G.KillSoulReaper then tween:Cancel() end
+end
+
+-- TOGGLE PARA MATAR O SOUL REAPER NA TAB STACK
+_G.KillSoulReaper = false
+
+Tabs.Stack:AddToggle("KillSoulReaperToggle", {
+    Title = "Kill Soul Reaper",
+    Default = false,
+    Callback = function(Value)
+        _G.KillSoulReaper = Value
+        
+        if Value then
+            task.spawn(function()
+                -- O loop só para se o boss morrer/sumir ou se você desligar a toggle
+                while _G.KillSoulReaper do
+                    pcall(function()
+                        local character = LocalPlayer.Character
+                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        
+                        -- Se você morrer ou resetar, espera o seu corpo spawnar de novo
+                        if not hrp or not humanoid or humanoid.Health <= 0 then
+                            task.wait(0.5)
+                            return
+                        end
+                        
+                        -- Verifica se o Soul Reaper está na pasta e vivo
+                        local boss = EnemiesFolder:FindFirstChild("Soul Reaper")
+                        if not boss then
+                            warn("Soul Reaper nao encontrado ou ja foi derrotado!")
+                            _G.KillSoulReaper = false -- Desliga automaticamente se ele sumir
+                            return
+                        end
+                        
+                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
+                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
+                        
+                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
+                            -- EQUIP WEAPON (Garante a arma se a mão estiver vazia)
+                            if not character:FindFirstChildOfClass("Tool") and type(_G.ChooseWP2) == "function" then 
+                                _G.ChooseWP2() 
+                            end
+                            
+                            -- Voa exatamente 3 studs acima dele para descer a lenha com segurança
+                            voarAteSoulReaper(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
+                            
+                            -- Se o Bring Mob estiver ativo, ajuda a puxar se tiver mais bicho perto
+                            if type(_G.BringMobFuncion) == "function" then
+                                _G.BringMobFuncion(boss)
+                            end
+                        else
+                            -- Se a vida dele zerou, o farm acabou!
+                            warn("Soul Reaper foi de base! Desligando farm.")
+                            _G.KillSoulReaper = false
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- VARIÁVEIS DE CONTROLE
+_G.BarcoSelecionado = "Guardian" -- Ajustado para começar com a primeira letra maiúscula (Padrão Workspace)
+_G.AutoSpawnBoat = false
+
+-- Conexão para manter o Noclip ativo
+local NoclipConnection = nil
+
+-- FUNÇÃO DE VOO FÍSICO ANTI-CHEAT
+local function voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    
+    local bv = hrp:FindFirstChild("AntiCheatFlyForce")
+    if not bv then
+        bv = Instance.new("BodyVelocity")
+        bv.Name = "AntiCheatFlyForce"
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bv.Parent = hrp
+    end
+    
+    while _G.AutoSpawnBoat and hrp and hrp.Parent and (hrp.Position - posicaoAlvo).Magnitude > 4 do
+        local distanciaVector = (posicaoAlvo - hrp.Position)
+        local direcao = distanciaVector.Unit
+        
+        bv.Velocity = direcao * 85 -- Velocidade segura para evitar Kick
+        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(posicaoAlvo.X, hrp.Position.Y, posicaoAlvo.Z))
+        
+        RunService.Heartbeat:Wait()
+    end
+    
+    if bv then bv:Destroy() end
+    humanoid:ChangeState(Enum.HumanoidStateType.Standing)
+end
+
+-- FUNÇÃO PARA ATIVAR/DESATIVAR NOCLIP
+local function setNoclip(state)
+    if state then
+        if not NoclipConnection then
+            NoclipConnection = RunService.Stepped:Connect(function()
+                local character = LocalPlayer.Character
+                if character then
+                    for _, part in ipairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.CanCollide then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    else
+        if NoclipConnection then
+            NoclipConnection:Disconnect()
+            NoclipConnection = nil
+        end
+    end
+end
+
+-- 1. DROPDOWN DE SELEÇÃO DO BARCO
+Tabs.seaevent:AddDropdown("DropdownBarcos", {
+    Title = "Selecionar Barco",
+    Values = {"Guardian"},
+    CurrentOption = "Guardian",
+    Callback = function(Value)
+        _G.BarcoSelecionado = Value
+    end
+})
+
+-- 2. TOGGLE PARA EXECUTAR TODO O PROCESSO
+Tabs.seaevent:AddToggle("AutoSpawnBoatToggle", {
+    Title = "Spawn boat",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoSpawnBoat = Value
+        
+        if Value then
+            task.spawn(function()
+                pcall(function()
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                    
+                    if not hrp or not humanoid or humanoid.Health <= 0 then return end
+                    
+                    -- ETAPA 1: Voar até o Luxury Boat Dealer
+                    local dealerPart = Workspace:FindFirstChild("NPCs") and Workspace.NPCs:FindFirstChild("Luxury Boat Dealer") and Workspace.NPCs["Luxury Boat Dealer"]:FindFirstChild("UpperTorso")
+                    
+                    if dealerPart then
+                        voarFisicoAntiCheat(hrp, dealerPart.Position, humanoid)
+                        if not _G.AutoSpawnBoat then return end
+                        task.wait(0.3)
+                        
+                        -- ETAPA 2: Executa os args e o remote JUNTOS para comprar o barco (Apenas uma vez)
+                        local args = {
+                            "BuyBoat",
+                            _G.BarcoSelecionado
+                        }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
+                        
+                        -- Espera o delay de rede para o jogo registrar a compra e instanciar o objeto
+                        task.wait(1.5) 
+                    else
+                        warn("UpperTorso do Luxury Boat Dealer não encontrado!")
+                        return -- Cancela a execução se não achou o NPC comprador
+                    end
+                    
+                    -- ETAPA 3: SÓ VAI PARA O ASSENTO SE TIVER COMPRADO (Verifica se existe na Workspace pós-compra)
+                    if _G.AutoSpawnBoat then
+                        local pastaBoats = Workspace:FindFirstChild("Boats")
+                        local meuBarco = pastaBoats and pastaBoats:FindFirstChild(_G.BarcoSelecionado)
+                        local assento = meuBarco and meuBarco:FindFirstChild("VehicleSeat")
+                        
+                        if assento then
+                            -- Ativa o noclip para não dar trancos físicos na estrutura do barco
+                            setNoclip(true)
+                            
+                            -- Voa em direção ao banco
+                            voarFisicoAntiCheat(hrp, assento.Position, humanoid)
+                            
+                            -- Força o personagem a sentar ao alcançar a distância
+                            if _G.AutoSpawnBoat and (hrp.Position - assento.Position).Magnitude <= 5 then
+                                if humanoid.SeatPart ~= assento then
+                                    assento:Sit(humanoid)
+                                end
+                            end
+                        else
+                            warn("VehicleSeat do barco comprado não foi localizado!")
+                        end
+                    end
+                    
+                    -- Finaliza o noclip após sentar ou encerrar o fluxo linear do script
+                    setNoclip(false)
+                end)
+            end)
+        else
+            -- Limpeza completa de instâncias e travas caso a toggle seja desligada
+            setNoclip(false)
+            pcall(function()
+                local character = LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
+                    hrp.AntiCheatFlyForce:Destroy()
+                end
+            end)
+        end
+    end
+})
+
+_G.KillRipIndra = false
+
+-- TOGGLE PARA CAÇAR O RIP INDRA TRUE FORM
+Tabs.Stack:AddToggle("KillRipIndraToggle", {
+    Title = "Kill Rip Indra",
+    Default = false,
+    Callback = function(Value)
+        _G.KillRipIndra = Value
+
+        if Value then
+            task.spawn(function()
+                while _G.KillRipIndra do
+                    pcall(function()
+                        local character = LocalPlayer.Character
+                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+                        
+                        if not hrp or not humanoid or humanoid.Health <= 0 then 
+                            task.wait(0.5)
+                            return 
+                        end
+
+                        -- Escaneia a localização exata na pasta workspace.Enemies
+                        local boss = workspace:FindFirstChild("Enemies") and workspace.Enemies:FindFirstChild("rip_indra True Form") or workspace:FindFirstChild("rip_indra True Form")
+
+                        -- Se o Boss não estiver spawnado no servidor, limpa as forças e espera
+                        if not boss then
+                            local bv = hrp:FindFirstChild("AntiCheatFlyForce")
+                            if bv then bv:Destroy() end
+                            task.wait(0.5)
+                            return
+                        end
+
+                        local bossHrp = boss:FindFirstChild("HumanoidRootPart")
+                        local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
+
+                        -- Se o rip_indra estiver vivo, desce o cacete nele
+                        if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
+                            
+                            -- Executa a sua função nativa de equipar a arma para atacar
+                            if type(_G.ChooseWP2) == "function" and not character:FindFirstChildOfClass("Tool") then
+                                _G.ChooseWP2()
+                            end
+
+                            -- Calcula o ponto cego (3 studs acima da cabeça dele para atacar com total segurança)
+                            local posicaoAlvo = bossHrp.Position + Vector3.new(0, 3, 0)
+                            
+                            -- Inicia o voo físico suave travando no Boss
+                            voarFisicoAntiCheat(hrp, posicaoAlvo, humanoid)
+                        end
+                    end)
+                    task.wait(0.05)
+                end
+                
+                -- Limpeza absoluta ao desligar a Toggle manualmente para você não ficar flutuando
+                pcall(function()
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
+                        hrp.AntiCheatFlyForce:Destroy()
+                    end
+                end)
+            end)
+        end
+    end
+})
