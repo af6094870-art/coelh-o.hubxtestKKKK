@@ -8,7 +8,7 @@ local Window = Fluent:CreateWindow({
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
-    Theme = "Dared",
+    Theme = "Sakura",
     MinimizeKey = Enum.KeyCode.RightControl
 })
 local ScreenGui = Instance.new("ScreenGui")
@@ -2413,6 +2413,83 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
                     task.wait(0.2)
                 end
             end)
+        end
+    end
+})
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local CaptainTween = nil
+
+-- FUNÇÃO TWEEN DE VELOCIDADE CONTROLADA
+local function tweenParaCapitao(posicaoAlvo)
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local distancia = (posicaoAlvo.Position - hrp.Position).Magnitude
+    -- Usa sua velocidade global, se não definida usa 85 como padrão seguro
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 85
+    local tempo = distancia / velocidade
+
+    if CaptainTween then CaptainTween:Cancel() end
+
+    local info = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
+    CaptainTween = TweenService:Create(hrp, info, {CFrame = posicaoAlvo})
+    CaptainTween:Play()
+    
+    CaptainTween.Completed:Wait()
+end
+
+-- TOGGLE DO CURSED CAPTAIN NA TAB MAIN
+Tabs.Stack:AddToggle("AutoCursedCaptainToggle", {
+    Title = "kill Cursed Captain",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoCursedCaptain = Value
+
+        if Value then
+            task.spawn(function()
+                while _G.AutoCursedCaptain do
+                    pcall(function()
+                        -- Verifica primeiro se o Boss está spawnado no Workspace ou nos Inimigos vivos
+                        local enemies = workspace:FindFirstChild("Enemies") or workspace
+                        local boss = enemies:FindFirstChild("Cursed Captain")
+
+                        if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                            -- 1. Executa a sua função oficial de equipar arma
+                            if _G.ChooseWP2 then 
+                                _G.ChooseWP2() 
+                            end
+
+                            -- 2. Voa até o Boss (fica a 3 studs acima para não bugar no chão)
+                            local posicaoAlvo = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+                            tweenParaCapitao(posicaoAlvo)
+
+                            -- 3. Gruda e senta o dedo no ataque enquanto ele estiver vivo
+                            repeat
+                                if boss and boss:FindFirstChild("HumanoidRootPart") then
+                                    LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+                                end
+                                -- Passa o boss e a flag da toggle para a sua função de ataque básico
+                                Attack.Kill(boss, _G.AutoCursedCaptain)
+                                task.wait()
+                            until not _G.AutoCursedCaptain or not boss.Parent or boss.Humanoid.Health <= 0
+                        else
+                            -- Se o Boss não nasceu, cancela o voo para você não ficar flutuando no nada
+                            if CaptainTween then CaptainTween:Cancel() end
+                        end
+                    end)
+                    task.wait(0.5) -- Checa a existência do Boss a cada meio segundo para economizar FPS
+                end
+
+                -- Limpeza ao desligar a Toggle
+                if CaptainTween then CaptainTween:Cancel() end
+            end)
+        else
+            if CaptainTween then CaptainTween:Cancel() end
         end
     end
 })
