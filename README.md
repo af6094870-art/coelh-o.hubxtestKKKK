@@ -900,7 +900,7 @@ _G.Settings.Shop = _G.Settings.Shop or {}
 
 -- BANCO DE DADOS DE CFRAMES (Atualizado com a sua coordenada exata do Shafi)
 local NPC_POSITIONS = {
-    ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939),
+    ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939) ,
     ["Electro"]        = CFrame.new(-4994.93018, 314.557556, -3198.11987),
     ["WaterKungFu"]    = CFrame.new(-5019.89941, 371.354584, -3190.61987),
     ["DragonBreath"]   = CFrame.new(-4980.09473, 371.354584, -3206.14917), -- Sabi / Daermon
@@ -912,100 +912,6 @@ local NPC_POSITIONS = {
     ["Godhuman"]       = CFrame.new(-13771.4043, 337.733002, -9876.94336),
     ["SanguineArt"]    = CFrame.new(-16511.1152, 26.8119965, -189.201233) -- Coordenada real do Shafi aplicada!
 }
-
--- Função de movimentação por VOO CONTROLADO COM BARREIRA DE ALTURA (Y)
-local function VoarParaPosicao(settingKey)
-    local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local cframeAlvo = NPC_POSITIONS[settingKey]
-
-    if hrp and cframeAlvo then
-        local velocidade = _G.VelocidadeFarmBone or 250
-        local LIMITE_Y = 20 -- Defina aqui a altura mínima que o player pode alcançar (Impede Y negativo)
-        
-        if shouldTween ~= nil then shouldTween = true end
-        
-        -- Garante que a gravidade ou forças físicas não puxem o boneco para baixo
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-
-        -- CÁLCULO DO VOO SUAVE:
-        local distancia = (hrp.Position - cframeAlvo.Position).Magnitude
-        local deltaTime = task.wait() 
-        local passo = (velocidade * deltaTime) / distancia
-        
-        if passo >= 1 then
-            -- Se o alvo final tiver Y menor que o limite, barra ele no limite seguro
-            local posFinal = cframeAlvo.Position
-            if posFinal.Y < LIMITE_Y then
-                posFinal = Vector3.new(posFinal.X, LIMITE_Y, posFinal.Z)
-            end
-            hrp.CFrame = CFrame.new(posFinal) * (cframeAlvo - cframeAlvo.Position)
-            return true
-        else
-            -- Calcula o próximo CFrame do movimento suave
-            local proximoCFrame = hrp.CFrame:Lerp(cframeAlvo, passo)
-            local novaPosicao = proximoCFrame.Position
-            
-            -- BARREIRA INVISÍVEL: Se a próxima posição for menor que o limite, força o Y para cima
-            if novaPosicao.Y < LIMITE_Y then
-                novaPosicao = Vector3.new(novaPosicao.X, LIMITE_Y, novaPosicao.Z)
-                -- Reconstrói o CFrame mantendo a rotação original, mas aplicando a trava no Y
-                proximoCFrame = CFrame.new(novaPosicao) * (proximoCFrame - proximoCFrame.Position)
-            end
-            
-            hrp.CFrame = proximoCFrame
-        end
-        
-        if distancia < 15 then
-            return true
-        end
-    end
-    return false
-end
-
--- Função centralizada que roda o loop de voo e compra sem travar
-local function IniciarLoopEstilo(settingKey, buyCallback)
-    task.spawn(function()
-        -- Ativa o Noclip em segundo plano enquanto o toggle estiver ativo
-        local noclipConnection
-        noclipConnection = RunService.Stepped:Connect(function()
-            if not _G.Settings.Shop[settingKey] then
-                if noclipConnection then noclipConnection:Disconnect() end
-                return
-            end
-            if plr.Character then
-                for _, part in ipairs(plr.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then 
-                        part.CanCollide = false 
-                    end
-                end
-                
-                -- CAMADA EXTRA DE SEGURANÇA NO NOCLIP:
-                -- Se por algum motivo externo (ataque, bug) o boneco cair abaixo do limite, joga ele pra cima na hora
-                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-                if hrp and hrp.Position.Y < 20 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 20, hrp.Position.Z) * (hrp.CFrame - hrp.CFrame.Position)
-                end
-            end
-        end)
-
-        -- Loop principal focado em voar
-        while _G.Settings.Shop[settingKey] do
-            RunService.Heartbeat:Wait()
-            
-            local chegouNoNpc = VoarParaPosicao(settingKey)
-            
-            if chegouNoNpc then
-                task.spawn(function()
-                    pcall(buyCallback)
-                end)
-                task.wait(0.5)
-            end
-        end
-        
-        if shouldTween ~= nil then shouldTween = false end
-    end)
-end
 
 Tabs.ShopTab:AddToggle("ToggleBlackLeg", {
     Title = "Auto Dark Step (Black Leg)",
