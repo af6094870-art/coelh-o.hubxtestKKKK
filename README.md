@@ -8,7 +8,7 @@ local Window = Fluent:CreateWindow({
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
-    Theme = "Sakura",
+    Theme = "Darked",
     MinimizeKey = Enum.KeyCode.RightControl
 })
 local ScreenGui = Instance.new("ScreenGui")
@@ -16,7 +16,7 @@ local ToggleBtn = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
 
 ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
+ScreenGui.ResetOnSpawn = true
 
 ToggleBtn.Parent = ScreenGui
 ToggleBtn.Size = UDim2.new(0, 60, 0, 60)
@@ -2423,14 +2423,13 @@ local LocalPlayer = Players.LocalPlayer
 
 local CaptainTween = nil
 
--- FUNÇÃO TWEEN DE VELOCIDADE CONTROLADA
-local function tweenParaCapitao(posicaoAlvo)
+-- FUNÇÃO TWEEN COM A SUA VELOCIDADE GLOBAL
+local function voarAteCapitao(posicaoAlvo)
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
     local distancia = (posicaoAlvo.Position - hrp.Position).Magnitude
-    -- Usa sua velocidade global, se não definida usa 85 como padrão seguro
     local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 85
     local tempo = distancia / velocidade
 
@@ -2443,8 +2442,8 @@ local function tweenParaCapitao(posicaoAlvo)
     CaptainTween.Completed:Wait()
 end
 
--- TOGGLE DO CURSED CAPTAIN NA TAB MAIN
-Tabs.Stack:AddToggle("AutoCursedCaptainToggle", {
+-- TOGGLE NA TAB MAIN
+Tabs.Stack:AddToggle("AutoCursedCaptain", {
     Title = "kill Cursed Captain",
     Default = false,
     Callback = function(Value)
@@ -2454,38 +2453,39 @@ Tabs.Stack:AddToggle("AutoCursedCaptainToggle", {
             task.spawn(function()
                 while _G.AutoCursedCaptain do
                     pcall(function()
-                        -- Verifica primeiro se o Boss está spawnado no Workspace ou nos Inimigos vivos
-                        local enemies = workspace:FindFirstChild("Enemies") or workspace
-                        local boss = enemies:FindFirstChild("Cursed Captain")
+                        -- Verifica estritamente se a pasta e o NPC estão no mapa
+                        local enemies = workspace:FindFirstChild("Enemies")
+                        local boss = enemies and enemies:FindFirstChild("Cursed Captain")
 
+                        -- SÓ FAZ SE O NPC ESTIVER NO MAPA E VIVO
                         if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                            -- 1. Executa a sua função oficial de equipar arma
+                            
+                            -- 1. Executa a sua função de equipar arma
                             if _G.ChooseWP2 then 
                                 _G.ChooseWP2() 
                             end
 
-                            -- 2. Voa até o Boss (fica a 3 studs acima para não bugar no chão)
+                            -- 2. Voa até o Boss com controle de velocidade (3 studs acima)
                             local posicaoAlvo = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
-                            tweenParaCapitao(posicaoAlvo)
+                            voarAteCapitao(posicaoAlvo)
 
-                            -- 3. Gruda e senta o dedo no ataque enquanto ele estiver vivo
+                            -- 3. Loop de ataque colado nele
                             repeat
                                 if boss and boss:FindFirstChild("HumanoidRootPart") then
                                     LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
                                 end
-                                -- Passa o boss e a flag da toggle para a sua função de ataque básico
                                 Attack.Kill(boss, _G.AutoCursedCaptain)
                                 task.wait()
+                            -- Se ele sumir da pasta enemies ou morrer, quebra o loop na hora
                             until not _G.AutoCursedCaptain or not boss.Parent or boss.Humanoid.Health <= 0
                         else
-                            -- Se o Boss não nasceu, cancela o voo para você não ficar flutuando no nada
+                            -- Se não estiver no mapa, cancela o Tween para você não voar pro nada
                             if CaptainTween then CaptainTween:Cancel() end
                         end
                     end)
-                    task.wait(0.5) -- Checa a existência do Boss a cada meio segundo para economizar FPS
+                    task.wait(0.2)
                 end
 
-                -- Limpeza ao desligar a Toggle
                 if CaptainTween then CaptainTween:Cancel() end
             end)
         else
@@ -2493,6 +2493,28 @@ Tabs.Stack:AddToggle("AutoCursedCaptainToggle", {
         end
     end
 })
+
+local BossGhoulStatus = Tabs.Status:AddParagraph({ 
+    Title = "Boss Ghoul Status:", 
+    Content = "🔴" 
+})
+
+-- Loop em segundo plano para atualizar o status sem lagar o jogo
+task.spawn(function()
+    while true do
+        pcall(function()
+            local enemies = workspace:FindFirstChild("Enemies")
+            local boss = enemies and enemies:FindFirstChild("Cursed Captain")
+
+            if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                BossGhoulStatus:SetContent("🟢")
+            else
+                BossGhoulStatus:SetContent("🔴")
+            end
+        end)
+        task.wait(1) -- Atualiza a cada 1 segundo
+    end
+end)
 
 _G.TeleportKitsune = false
 
