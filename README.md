@@ -8,9 +8,13 @@ local Window = Fluent:CreateWindow({
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
-    Theme = "Darked",
+    Theme = "Darker",
     MinimizeKey = Enum.KeyCode.RightControl
 })
+
+-- Força o fundo a ficar 100% opaco e sólido
+Fluent:ToggleTransparency(false)
+
 local ScreenGui = Instance.new("ScreenGui")
 local ToggleBtn = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
