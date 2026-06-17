@@ -2168,6 +2168,83 @@ _G.BringMobFuncion = function(alvoPrincipal)
     end
 end
 
+-- ====================================================================
+-- COORDENADAS E CONFIGURAÇÕES
+-- ====================================================================
+-- Posição exata que você enviou
+local posicaoInvocacao = Vector3.new(3780.00390625, 15, -3499.56689453125)
+local BlackbeardFarmAtivo = false
+
+-- ====================================================================
+-- FUNÇÃO DE VOO E EQUIPAR FIST OF DARKNESS
+-- ====================================================================
+local function voarEInvocarBlackbeard()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+    local humanoid = character:WaitForChild("Humanoid", 5)
+    
+    if not rootPart or not humanoid then return end
+
+    -- 1. Pega a velocidade definida no seu slider global (padrão 100 se não achar)
+    local velocidade = _G.VelocidadeFarmBone or 100
+    
+    -- 2. Calcula tempo de voo baseado na distância
+    local distancia = (rootPart.Position - posicaoInvocacao).Magnitude
+    local tempo = distancia / velocidade
+    
+    -- 3. Executa o voo via TweenService
+    local tweenService = game:GetService("TweenService")
+    local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
+    local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoInvocacao)})
+    
+    tween:Play()
+    tween.Completed:Wait() -- Espera o personagem pousar na base de invocação
+    
+    -- 4. LÓGICA DE EQUIPAR O FIST OF DARKNESS
+    -- Procura primeiro na mochila (Backpack)
+    local fist = player.Backpack:FindFirstChild("Fist of Darkness") 
+        or character:FindFirstChild("Fist of Darkness") -- Ou se já estiver na mão
+        
+    if fist then
+        -- Se estiver na mochila, equipa na mão do personagem
+        if fist.Parent == player.Backpack then
+            humanoid:EquipTool(fist)
+        end
+        
+        -- Pequena pausa para garantir que o item foi equipado e tocou na base/altar
+        task.wait(0.5) 
+    else
+        -- Notificação caso você ligue o toggle mas não tenha o item no inventário
+        Fluent:Notify({
+            Title = "Coelho Hub",
+            Content = "Você não tem o Fist of Darkness no inventário!",
+            Duration = 3
+        })
+    end
+end
+
+-- ====================================================================
+-- ADICIONANDO O TOGGLE NA SUA TAB (ESTILO Tabs.SuaTab)
+-- ====================================================================
+-- Substitua StackFarm' pelo nome real da sua aba cadastrada na Fluent
+Tabs.Stack:AddToggle("SpawnBlackbeard", {
+    Title = "Spawn Blackbeard",
+    Default = false,
+    Callback = function(Value)
+        BlackbeardFarmAtivo = Value
+        
+        if BlackbeardFarmAtivo then
+            task.spawn(function()
+                while BlackbeardFarmAtivo do
+                    voarEInvocarBlackbeard()
+                    task.wait(1) -- Evita lag/spam no loop de checagem
+                end
+            end)
+        end
+    end
+})
+
 repeat wait() until game:IsLoaded()
 
 local PlaceIds = {
@@ -2390,6 +2467,87 @@ Tabs.Main:AddToggle("Test", {
                             end
                         end
                     end)
+                end
+            end)
+        end
+    end
+})
+
+-- Variável de controle do loop do Darkbeard
+local DarkbeardFarmAtivo = false
+
+-- ====================================================================
+-- FUNÇÃO PRINCIPAL: VOAR E MATAR O DARKBEARD
+-- ====================================================================
+local function atacarDarkbeard()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+    local humanoid = character:WaitForChild("Humanoid", 5)
+    
+    if not rootPart or not humanoid then return end
+
+    -- 1. Verifica se o Darkbeard existe dentro de workspace.Enemies
+    local enemiesFolder = workspace:FindFirstChild("Enemies")
+    local darkbeard = enemiesFolder and enemiesFolder:FindFirstChild("Darkbeard")
+    
+    if darkbeard and darkbeard:FindFirstChild("HumanoidRootPart") and darkbeard:FindFirstChild("Humanoid") and darkbeard.Humanoid.Health > 0 then
+        
+        -- 2. Lógica para Equipar a Arma do _G.ChooseWP2
+        if _G.ChooseWP2 then
+            if type(_G.ChooseWP2) == "function" then
+                _G.ChooseWP2() -- Se for uma função de equipar, executa ela
+            elseif type(_G.ChooseWP2) == "string" then
+                -- Se for o nome da arma, procura na mochila e equipa
+                local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
+                if ferramenta then
+                    humanoid:EquipTool(ferramenta)
+                end
+            end
+        end
+
+        -- 3. Configura o Voo (Tween) até a posição do Darkbeard
+        local alvoPos = darkbeard.HumanoidRootPart.Position
+        -- Mantém você um pouco acima dele (ex: 5 studs) para evitar cair do mapa ou errar os ataques
+        local posicaoSegura = alvoPos + Vector3.new(0, 5, 0) 
+        
+        local velocidade = _G.VelocidadeFarmBone or 100
+        local distancia = (rootPart.Position - posicaoSegura).Magnitude
+        local tempo = distancia / velocidade
+        
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
+        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoSegura, alvoPos)})
+        
+        tween:Play()
+        
+        -- Se você já estiver muito perto, o tween acaba rápido; caso contrário, espera chegar
+        if distancia > 15 then
+            tween.Completed:Wait()
+        else
+            -- Se já estiver colado nele, só atualiza a posição instantaneamente para travar o farm nele
+            rootPart.CFrame = CFrame.new(posicaoSegura, alvoPos)
+        end
+    else
+        -- Se o Darkbeard não estiver no servidor ou já morreu
+        task.wait(0.5)
+    end
+end
+
+-- ====================================================================
+-- ADICIONANDO O TOGGLE NA SUA TAB DA FLUENT GUI (Tabs.StackFarm)
+-- ====================================================================
+Tabs.Stack:AddToggle("KillDarkbeard", {
+    Title = "Kill Darkbeard",
+    Default = false,
+    Callback = function(Value)
+        DarkbeardFarmAtivo = Value
+        
+        if DarkbeardFarmAtivo then
+            task.spawn(function()
+                while DarkbeardFarmAtivo do
+                    pcall(atacarDarkbeard) -- pcall evita que o script quebre caso você morra durante o farm
+                    task.wait(0.1) -- Loop rápido para grudar no NPC em movimento
                 end
             end)
         end
