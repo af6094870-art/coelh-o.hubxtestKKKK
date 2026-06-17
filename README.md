@@ -21,7 +21,6 @@ Fluent:Notify({
     Content = "UI Inicializada com sucesso!",
     Duration = 3
 })
-
 local ScreenGui = Instance.new("ScreenGui")
 local ToggleBtn = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
