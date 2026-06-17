@@ -18,7 +18,7 @@ Fluent:ToggleTransparency(false)
 -- Notificação apenas para testar se carregou
 Fluent:Notify({
     Title = "Coelho Hub",
-    Content = "UI Inicializada com sucesso!",
+    Content = "welcome!",
     Duration = 3
 })
 local ScreenGui = Instance.new("ScreenGui")
