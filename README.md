@@ -888,7 +888,7 @@ Tabs.ShopTab:AddParagraph({
 })
 
 -- ==============================================================
--- AUTO BUY ESTILOS DE LUTA - POSIÇÕES FIXAS OFICIAIS (COELHO HUB)
+-- AUTO BUY ESTILOS DE LUTA - DINÂMICO POR SEA (COELHO HUB)
 -- ==============================================================
 
 -- Cache de Serviços e Configurações Globais
@@ -900,20 +900,54 @@ local plr = Players.LocalPlayer
 _G.Settings = _G.Settings or {}
 _G.Settings.Shop = _G.Settings.Shop or {}
 
--- BANCO DE DADOS DE CFRAMES (Atualizado com a sua coordenada exata do Shafi)
-local NPC_POSITIONS = {
-    ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939),
-    ["Electro"]        = CFrame.new(-4994.93018, 314.557556, -3198.11987),
-    ["WaterKungFu"]    = CFrame.new(-5019.89941, 371.354584, -3190.61987),
-    ["DragonBreath"]   = CFrame.new(-4980.09473, 371.354584, -3206.14917), -- Sabi / Daermon
-    ["Superhuman"]     = CFrame.new(-5005.6626,  374.42334,  -3195.02759),
-    ["DeathStep"]      = CFrame.new(-5003.19482, 318.014496, -3222.10449),
-    ["SharkmanKarate"] = CFrame.new(-4968.7417,  317.886932, -3219.92822),
-    ["ElectricClaw"]   = CFrame.new(-10375.2676, 334.764008, -10132.6826),
-    ["DragonTalon"]    = CFrame.new(5657.89844,  1214.87695, 863.23822),
-    ["Godhuman"]       = CFrame.new(-13771.4043, 337.733002, -9876.94336),
-    ["SanguineArt"]    = CFrame.new(-16511.1152, 26.8119965, -189.201233) -- Coordenada real do Shafi aplicada!
+-- Identificação automática do Sea (Mundo) pelo PlaceId
+local PlaceId = game.PlaceId
+local SEAS = {
+    [2753915549] = "sea1",
+    [4442272183] = "sea2",
+    [7449423635] = "sea3 ",
+    [79091703265657] = "Sea2",
+    [996949360] = "Sea2",
+    [100117331123089] = "sea3",
+    [994732206] = "sea3",
 }
+local currentSea = SEAS[PlaceId] or "Sea3" -- Padrão Sea 3 caso não identifique
+
+-- BANCO DE DADOS DE CFRAMES ADAPTATIVO
+local ALL_NPC_POSITIONS = {
+    ["Sea1"] = {
+        ["DarkStep"]    = CFrame.new(-983.5250244140625, 12.807998657226562, 3990.4990234375),
+        ["Electro"]     = CFrame.new(-5382.7822265625, 12.975006103515625, -2148.818115234375),
+        ["WaterKungFu"] = CFrame.new(61588, 19.529006958007812, 987.719970703125),
+        -- Outros estilos não fazem nada no Sea 1 (ficarão como nil)
+    },
+    ["Sea2"] = {
+        ["DarkStep"]       = CFrame.new(-4752.43212890625, 33.929847717285156, -4848.0390625),
+        ["Electro"]        = CFrame.new(-4866.150390625, 33.929847717285156, -4767.1025390625),
+        ["WaterKungFu"]    = CFrame.new(-4957.67041015625, 35.94983673095703, -4665.599609375),
+        ["DragonBreath"]   = CFrame.new(698.9290161132812, 186.26100158691406, 654.8909912109375),
+        ["Superhuman"]     = CFrame.new(1377.125, 247.0749969482422, -5189.951171875),
+        ["DeathStep"]      = CFrame.new(6356.3369140625, 295.718994140625, -6762.68310546875),
+        ["SharkmanKarate"] = CFrame.new(-2599.621826171875, 238.19833374023438, -10315.998046875),
+        -- Godhuman e Sanguine Art não fazem nada no Sea 2 (ficarão como nil)
+    },
+    ["Sea3"] = {
+        ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939),
+        ["Electro"]        = CFrame.new(-4994.93018, 314.557556, -3198.11987),
+        ["WaterKungFu"]    = CFrame.new(-5019.89941, 371.354584, -3190.61987),
+        ["DragonBreath"]   = CFrame.new(-4980.09473, 371.354584, -3206.14917),
+        ["Superhuman"]     = CFrame.new(-5005.6626,  374.42334,  -3195.02759),
+        ["DeathStep"]      = CFrame.new(-5003.19482, 318.014496, -3222.10449),
+        ["SharkmanKarate"] = CFrame.new(-4968.7417,  317.886932, -3219.92822),
+        ["ElectricClaw"]   = CFrame.new(-10375.2676, 334.764008, -10132.6826),
+        ["DragonTalon"]    = CFrame.new(5657.89844,  1214.87695, 863.23822),
+        ["Godhuman"]       = CFrame.new(-13771.4043, 337.733002, -9876.94336),
+        ["SanguineArt"]    = CFrame.new(-16511.1152, 26.8119965, -189.201233)
+    }
+}
+
+-- Filtra o dicionário final baseado no mundo em que o player nasceu
+local NPC_POSITIONS = ALL_NPC_POSITIONS[currentSea]
 
 -- Função de movimentação por VOO CONTROLADO COM BARREIRA DE ALTURA (Y)
 local function VoarParaPosicao(settingKey)
@@ -921,13 +955,16 @@ local function VoarParaPosicao(settingKey)
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local cframeAlvo = NPC_POSITIONS[settingKey]
 
+    -- SEGURANÇA: Se a posição não existir para este Sea, retorna falso e não move o player
+    if not cframeAlvo then 
+        return false 
+    end
+
     if hrp and cframeAlvo then
         local velocidade = _G.VelocidadeFarmBone or 250
-        local LIMITE_Y = 20 -- Defina aqui a altura mínima que o player pode alcançar (Impede Y negativo)
+        local LIMITE_Y = 20 -- Altura mínima segura
         
         if shouldTween ~= nil then shouldTween = true end
-        
-        -- Garante que a gravidade ou forças físicas não puxem o boneco para baixo
         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 
         -- CÁLCULO DO VOO SUAVE:
@@ -936,7 +973,6 @@ local function VoarParaPosicao(settingKey)
         local passo = (velocidade * deltaTime) / distancia
         
         if passo >= 1 then
-            -- Se o alvo final tiver Y menor que o limite, barra ele no limite seguro
             local posFinal = cframeAlvo.Position
             if posFinal.Y < LIMITE_Y then
                 posFinal = Vector3.new(posFinal.X, LIMITE_Y, posFinal.Z)
@@ -944,14 +980,11 @@ local function VoarParaPosicao(settingKey)
             hrp.CFrame = CFrame.new(posFinal) * (cframeAlvo - cframeAlvo.Position)
             return true
         else
-            -- Calcula o próximo CFrame do movimento suave
             local proximoCFrame = hrp.CFrame:Lerp(cframeAlvo, passo)
             local novaPosicao = proximoCFrame.Position
             
-            -- BARREIRA INVISÍVEL: Se a próxima posição for menor que o limite, força o Y para cima
             if novaPosicao.Y < LIMITE_Y then
                 novaPosicao = Vector3.new(novaPosicao.X, LIMITE_Y, novaPosicao.Z)
-                -- Reconstrói o CFrame mantendo a rotação original, mas aplicando a trava no Y
                 proximoCFrame = CFrame.new(novaPosicao) * (proximoCFrame - proximoCFrame.Position)
             end
             
@@ -967,6 +1000,12 @@ end
 
 -- Função centralizada que roda o loop de voo e compra sem travar
 local function IniciarLoopEstilo(settingKey, buyCallback)
+    -- Se o estilo de luta não tiver coordenada configurada neste mar, cancela imediatamente
+    if not NPC_POSITIONS[settingKey] then 
+        warn("[Coelho Hub] Este estilo de luta não está disponível ou configurado para o " .. currentSea)
+        return 
+    end
+
     task.spawn(function()
         -- Ativa o Noclip em segundo plano enquanto o toggle estiver ativo
         local noclipConnection
@@ -982,8 +1021,7 @@ local function IniciarLoopEstilo(settingKey, buyCallback)
                     end
                 end
 
-                -- CAMADA EXTRA DE SEGURANÇA NO NOCLIP:
-                -- Se por algum motivo externo (ataque, bug) o boneco cair abaixo do limite, joga ele pra cima na hora
+                -- EXTRA DE SEGURANÇA NO NOCLIP:
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                 if hrp and hrp.Position.Y < 20 then
                     hrp.CFrame = CFrame.new(hrp.Position.X, 20, hrp.Position.Z) * (hrp.CFrame - hrp.CFrame.Position)
@@ -1008,6 +1046,10 @@ local function IniciarLoopEstilo(settingKey, buyCallback)
         if shouldTween ~= nil then shouldTween = false end
     end)
 end
+
+-- ==============================================================
+-- DEFINIÇÃO DOS TOGGLES (O resto permanece compatível com sua UI)
+-- ==============================================================
 
 Tabs.ShopTab:AddToggle("ToggleBlackLeg", {
     Title = "Auto Dark Step (Black Leg)",
@@ -2129,13 +2171,13 @@ end
 repeat wait() until game:IsLoaded()
 
 local PlaceIds = {
-    [2753915549] = "World 1",
-    [4442272183] = "World 2",
-    [7449423635] = "World 3 ",
+    [2753915549] = "sea 1",
+    [4442272183] = "sea 2",
+    [7449423635] = "sea 3 ",
     [79091703265657] = "Sea 2",
     [996949360] = "Sea 2",
-    [100117331123089] = "World 3",
-    [994732206] = "World 3",
+    [100117331123089] = "sea 3",
+    [994732206] = "sea 3",
 }
 
 local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
@@ -2419,95 +2461,74 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
     end
 })
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local CursedCaptainFarmAtivo = false
 
-local CaptainTween = nil
+-- ====================================================================
+-- 2. FUNÇÃO DE VOO, VELOCIDADE E EQUIPAR (LÓGICA)
+-- ====================================================================
+local function iniciarVooCursedCaptain()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+    
+    if not rootPart then return end
 
--- FUNÇÃO TWEEN DE VELOCIDADE CONTROLADA
-local function tweenParaCapitao(posicaoAlvo)
--- FUNÇÃO TWEEN COM A SUA VELOCIDADE GLOBAL
-local function voarAteCapitao(posicaoAlvo)
-    local character = LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local distancia = (posicaoAlvo.Position - hrp.Position).Magnitude
-    -- Usa sua velocidade global, se não definida usa 85 como padrão seguro
-    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 85
-    local tempo = distancia / velocidade
-
-    if CaptainTween then CaptainTween:Cancel() end
-
-    local info = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-    CaptainTween = TweenService:Create(hrp, info, {CFrame = posicaoAlvo})
-    CaptainTween:Play()
-
-    CaptainTween.Completed:Wait()
+    -- Busca o Model conforme a imagem do seu Dex
+    local cursedCaptain = game:GetService("ReplicatedStorage"):FindFirstChild("Cursed Captain")
+    
+    if cursedCaptain then
+        -- Coleta o CFrame do WorldPivot (posição salva no modelo do ReplicatedStorage)
+        local alvoCFrame = cursedCaptain:GetPivot()
+        local alvoPos = alvoCFrame.Position
+        
+        -- Controle de velocidade vindo do seu slider global
+        local velocidade = _G.VelocidadeFarmBone or 100
+        
+        -- Cálculo de tempo proporcional à distância
+        local distancia = (rootPart.Position - alvoPos).Magnitude
+        local tempo = distancia / velocidade
+        
+        -- Executa o TweenService para voar suavemente
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
+        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = alvoCFrame})
+        
+        tween:Play()
+        tween.Completed:Wait() -- Aguarda chegar no local
+        
+        -- Ativa o equip weapon após a chegada
+        if _G.ChooseWP2 then
+            if type(_G.ChooseWP2) == "function" then
+                _G.ChooseWP2() -- Executa se for uma função direta
+            else
+                -- Se _G.ChooseWP2 for o nome da arma (string), você chama sua função de equipar aqui.
+                -- Exemplo: pcall(function() character.Humanoid:EquipTool(player.Backpack[_G.ChooseWP2]) end)
+            end
+        end
+    else
+        -- Notificação nativa da Fluent caso o boss não exista no momento
+        Fluent:Notify({
+            Title = "Coelho Hub",
+            Content = "Cursed Captain não encontrado no ReplicatedStorage!",
+            Duration = 3
+        })
+    end
 end
 
--- TOGGLE DO CURSED CAPTAIN NA TAB MAIN
-Tabs.Stack:AddToggle("AutoCursedCaptainToggle", {
--- TOGGLE NA TAB MAIN
-Tabs.Stack:AddToggle("AutoCursedCaptain", {
+Tabs.Stack:AddToggle("KillCursedCaptain", {
     Title = "kill Cursed Captain",
     Default = false,
     Callback = function(Value)
-        _G.AutoCursedCaptain = Value
-
-        if Value then
+        CursedCaptainFarmAtivo = Value
+        
+        if CursedCaptainFarmAtivo then
+            -- Thread separada (task.spawn) para o loop rodar sem congelar a Fluent UI
             task.spawn(function()
-                while _G.AutoCursedCaptain do
-                    pcall(function()
-                        -- Verifica primeiro se o Boss está spawnado no Workspace ou nos Inimigos vivos
-                        local enemies = workspace:FindFirstChild("Enemies") or workspace
-                        local boss = enemies:FindFirstChild("Cursed Captain")
-                        -- Verifica estritamente se a pasta e o NPC estão no mapa
-                        local enemies = workspace:FindFirstChild("Enemies")
-                        local boss = enemies and enemies:FindFirstChild("Cursed Captain")
-
-                        -- SÓ FAZ SE O NPC ESTIVER NO MAPA E VIVO
-                        if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                            -- 1. Executa a sua função oficial de equipar arma
-                            
-                            -- 1. Executa a sua função de equipar arma
-                            if _G.ChooseWP2 then 
-                                _G.ChooseWP2() 
-                            end
-
-                            -- 2. Voa até o Boss (fica a 3 studs acima para não bugar no chão)
-                            -- 2. Voa até o Boss com controle de velocidade (3 studs acima)
-                            local posicaoAlvo = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
-                            tweenParaCapitao(posicaoAlvo)
-                            voarAteCapitao(posicaoAlvo)
-
-                            -- 3. Gruda e senta o dedo no ataque enquanto ele estiver vivo
-                            -- 3. Loop de ataque colado nele
-                            repeat
-                                if boss and boss:FindFirstChild("HumanoidRootPart") then
-                                    LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
-                                end
-                                -- Passa o boss e a flag da toggle para a sua função de ataque básico
-                                Attack.Kill(boss, _G.AutoCursedCaptain)
-                                task.wait()
-                            -- Se ele sumir da pasta enemies ou morrer, quebra o loop na hora
-                            until not _G.AutoCursedCaptain or not boss.Parent or boss.Humanoid.Health <= 0
-                        else
-                            -- Se o Boss não nasceu, cancela o voo para você não ficar flutuando no nada
-                            -- Se não estiver no mapa, cancela o Tween para você não voar pro nada
-                            if CaptainTween then CaptainTween:Cancel() end
-                        end
-                    end)
-                    task.wait(0.5) -- Checa a existência do Boss a cada meio segundo para economizar FPS
-                    task.wait(0.2)
+                while CursedCaptainFarmAtivo do
+                    iniciarVooCursedCaptain()
+                    task.wait(1) -- Pausa de segurança entre as checagens do loop
                 end
-
-                -- Limpeza ao desligar a Toggle
-                if CaptainTween then CaptainTween:Cancel() end
             end)
-        else
-            if CaptainTween then CaptainTween:Cancel() end
         end
     end
 })
