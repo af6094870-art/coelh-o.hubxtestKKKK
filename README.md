@@ -12,9 +12,6 @@ local Window = Fluent:CreateWindow({
     MinimizeKey = Enum.KeyCode.RightControl
 })
 
--- Força o fundo a ficar 100% opaco e sólido
-Fluent:ToggleTransparency(false)
-
 local ScreenGui = Instance.new("ScreenGui")
 local ToggleBtn = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
