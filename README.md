@@ -7,9 +7,19 @@ local Window = Fluent:CreateWindow({
     SubTitle = "by mr",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Acrylic = false,
-    Theme = "Darker",
+    Acrylic = false, -- Desativa o efeito blur do Windows 11
+    Theme = "Darker", -- CORRIGIDO: "Sakura" não existe na biblioteca original. Use "Darker", "Dark", "Aqua" ou "Light"
     MinimizeKey = Enum.KeyCode.RightControl
+})
+
+-- Força o Fluent original a tirar a transparência do fundo
+Fluent:ToggleTransparency(false)
+
+-- Notificação apenas para testar se carregou
+Fluent:Notify({
+    Title = "Coelho Hub",
+    Content = "UI Inicializada com sucesso!",
+    Duration = 3
 })
 
 local ScreenGui = Instance.new("ScreenGui")
