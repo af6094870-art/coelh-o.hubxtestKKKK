@@ -1400,125 +1400,6 @@ local ToggleFruit = Tabs.Fruit:AddToggle("ToggleGacha", {
     end
 })
 
--- Coordenadas do Altar de Invocação do rip_indra (Castelo do Mar)
-local AdminPos = CFrame.new(-5344.822265625, 423.98541259766, -2725.0930175781)
-local RipIndraFarmAtivo = false
-
--- ====================================================================
--- FUNÇÃO DE MOVIMENTAÇÃO (TWEEN) COM CONTROLE DE VELOCIDADE
--- ====================================================================
-local function voarAtePosicao(alvoCFrame)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-    
-    if not rootPart then return end
-    
-    -- Pega a velocidade do seu slider global (padrão 100 se estiver nulo)
-    local velocidade = _G.VelocidadeFarmBone or 100
-    local distancia = (rootPart.Position - alvoCFrame.Position).Magnitude
-    
-    -- Se já estiver muito perto, teleporta direto para evitar delay
-    if distancia < 10 then
-        rootPart.CFrame = alvoCFrame
-        return
-    end
-    
-    local tempo = distancia / velocidade
-    local tweenService = game:GetService("TweenService")
-    local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-    local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = alvoCFrame})
-    
-    tween:Play()
-    tween.Completed:Wait() -- Espera o voo terminar
-end
-
--- ====================================================================
--- FUNÇÃO DE EQUIPAR A ARMA DO SEU SLIDER/FUNÇÃO GLOBAL
--- ====================================================================
-local function equiparArmaSelecionada()
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    local humanoid = character and character:FindFirstChild("Humanoid")
-    
-    if _G.ChooseWP2 and humanoid then
-        if type(_G.ChooseWP2) == "function" then
-            _G.ChooseWP2() -- Executa se for a função direta
-        elseif type(_G.ChooseWP2) == "string" then
-            local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
-            if ferramenta then
-                humanoid:EquipTool(ferramenta)
-            end
-        end
-    end
-end
-
--- ====================================================================
--- LOGICA PRINCIPAL DO FARM DO RIP_INDRA
--- ====================================================================
-local function gerenciarFarmRipIndra()
-    -- Certifica de que estamos no World3 (Se você tiver a variável global do mundo)
-    -- Caso seu script não use a variável 'World3', remova essa checagem de mundo.
-    if World3 ~= nil and not World3 then return end
-    
-    local enemies = game:GetService("Workspace"):FindFirstChild("Enemies")
-    if not enemies then return end
-    
-    -- Procura o Boss nas duas formas possíveis
-    local ripIndra = enemies:FindFirstChild("rip_indra True Form") or enemies:FindFirstChild("rip_indra")
-    
-    if ripIndra and ripIndra:FindFirstChild("HumanoidRootPart") and ripIndra:FindFirstChild("Humanoid") and ripIndra.Humanoid.Health > 0 then
-        -- 1. Equipa a arma configurada no Coelho Hub
-        equiparArmaSelecionada()
-        
-        -- 2. Voa suavemente até o Boss respeitando a velocidade do Slider
-        -- Fica posicionado 5 studs acima dele para não bugar o CFrame
-        local posicaoBoss = ripIndra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-        voarAtePosicao(posicaoBoss)
-        
-        -- 3. Loop de ataque até ele morrer ou desativar o toggle
-        repeat 
-            task.wait()
-            pcall(function()
-                -- Mantém grudado na posição dele enquanto ataca
-                local player = game.Players.LocalPlayer
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and ripIndra:FindFirstChild("HumanoidRootPart") then
-                    player.Character.HumanoidRootPart.CFrame = ripIndra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-                end
-                
-                -- Usa a sua função de ataque padrão adaptada para o seu toggle
-                Attack.Kill(ripIndra, RipIndraFarmAtivo)
-            end)
-        -- Roda até o boss morrer, sumir do mapa ou você desligar o botão
-        until not RipIndraFarmAtivo or not ripIndra.Parent or ripIndra.Humanoid.Health <= 0
-    else
-        -- Se o boss NÃO estiver vivo, voa com a velocidade do slider até o Altar e espera lá
-        voarAtePosicao(AdminPos)
-        task.wait(0.5) -- Evita lagar o servidor enquanto espera o spawn
-    end
-end
-
--- ====================================================================
--- ADICIONANDO O TOGGLE NA SUA TAB DA FLUENT GUI
--- ====================================================================
--- Ajuste o 'Tabs.StackFarm' para a aba correspondente do seu script
-Tabs.Stack:AddToggle("AutoRipIndraToggle", {
-    Title = "kill rip_indra",
-    Default = false,
-    Callback = function(Value)
-        RipIndraFarmAtivo = Value
-        
-        if RipIndraFarmAtivo then
-            task.spawn(function()
-                while RipIndraFarmAtivo do
-                    pcall(gerenciarFarmRipIndra)
-                    task.wait(0.1) -- Delay seguro de repetição
-                end
-            end)
-        end
-    end
-})
-
 local ToggleAutoStore = Tabs.Fruit:AddToggle("AutoStoreFruit", {
     Title = "Auto Store Fruit",
     Description = "",
@@ -1737,81 +1618,6 @@ Tabs.ShopTab:AddButton({
 
         -- Se sua biblioteca de UI for do estilo Rayfield/Orion, você pode descomentar a linha abaixo para mandar um aviso visual:
         -- game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Coelho Hub", Text = "Todos os códigos foram processados!", Duration = 5})
-    end
-})
-
-local DoughKingFarmAtivo = false
-
-local function atacarDoughKing()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-    local humanoid = character:WaitForChild("Humanoid", 5)
-    
-    if not rootPart or not humanoid then return end
-
-    local doughKing = game:GetService("ReplicatedStorage"):FindFirstChild("Dough King")
-    
-    if doughKing then
-        if _G.ChooseWP2 then
-            if type(_G.ChooseWP2) == "function" then
-                _G.ChooseWP2()
-            elseif type(_G.ChooseWP2) == "string" then
-                local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
-                if ferramenta then
-                    humanoid:EquipTool(ferramenta)
-                end
-            end
-        end
-
-        local alvoCFrame = doughKing:GetPivot()
-        local alvoPos = alvoCFrame.Position
-        local posicaoSegura = alvoPos + Vector3.new(0, 5, 0)
-        
-        local velocidade = _G.VelocidadeFarmBone or 100
-        local distancia = (rootPart.Position - posicaoSegura).Magnitude
-        local tempo = distancia / velocidade
-        
-        local tweenService = game:GetService("TweenService")
-        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoSegura, alvoPos)})
-        
-        tween:Play()
-        
-        if distancia > 15 then
-            tween.Completed:Wait()
-        else
-            rootPart.CFrame = CFrame.new(posicaoSegura, alvoPos)
-        end
-        
-        repeat
-            task.wait()
-            pcall(function()
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and doughKing:GetPivot() then
-                    player.Character.HumanoidRootPart.CFrame = doughKing:GetPivot() * CFrame.new(0, 5, 0)
-                end
-                Attack.Kill2(doughKing, DoughKingFarmAtivo)
-            end)
-        until not DoughKingFarmAtivo or not doughKing.Parent or (doughKing:FindFirstChild("Humanoid") and doughKing.Humanoid.Health <= 0)
-    else
-        task.wait(0.5)
-    end
-end
-
-Tabs.Stack:AddToggle("KillDoughKing", {
-    Title = "Kill Dough King",
-    Default = false,
-    Callback = function(Value)
-        DoughKingFarmAtivo = Value
-        
-        if DoughKingFarmAtivo then
-            task.spawn(function()
-                while DoughKingFarmAtivo do
-                    pcall(atacarDoughKing)
-                    task.wait(0.1)
-                end
-            end)
-        end
     end
 })
 
@@ -2618,6 +2424,21 @@ local function voarAte(hrp, posicaoAlvo)
     tween.Completed:Wait()
 end
 
+local function equiparArma()
+    if _G.ChooseWP2 then
+        if type(_G.ChooseWP2) == "function" then
+            _G.ChooseWP2()
+        elseif type(_G.ChooseWP2) == "string" then
+            local char = LocalPlayer.Character
+            local humanoid = char and char:FindFirstChild("Humanoid")
+            local ferramenta = LocalPlayer.Backpack:FindFirstChild(_G.ChooseWP2)
+            if ferramenta and humanoid then
+                humanoid:EquipTool(ferramenta)
+            end
+        end
+    end
+end
+
 Tabs.Main:AddToggle("Test", {
     Title = "Farm Bone",
     Default = false,
@@ -2635,8 +2456,15 @@ Tabs.Main:AddToggle("Test", {
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
 
+                -- ====================================================================
+                -- GARANTE CHEGADA ANTES DE QUALQUER OUTRA AÇÃO
+                -- ====================================================================
                 voarAte(hrp, CFrameEspera.Position)
+                
+                -- Pequena pausa de segurança pós-pouso
+                task.wait(0.5)
 
+                -- Só entra no loop de buscar e farmar os mobs DEPOIS que chegou no CFrameEspera
                 while _G.Test do
                     pcall(function()
                         character = LocalPlayer.Character
@@ -2646,6 +2474,10 @@ Tabs.Main:AddToggle("Test", {
                         local lista = getNPCs()
 
                         if #lista == 0 then
+                            -- Se não houver mobs, volta para o CFrameEspera aguardar
+                            if (hrp.Position - CFrameEspera.Position).Magnitude > 20 then
+                                voarAte(hrp, CFrameEspera.Position)
+                            end
                             task.wait(0.5)
                             return
                         end
@@ -2657,19 +2489,23 @@ Tabs.Main:AddToggle("Test", {
                             local mobHumanoid = inimigo:FindFirstChildOfClass("Humanoid")
 
                             if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                                _G.ChooseWP2()
-                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
+                                equiparArma()
+                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 10, 0))
 
                                 while _G.Test and inimigo.Parent and mobHumanoid and mobHumanoid.Health > 0 do
                                     character = LocalPlayer.Character
                                     hrp = character and character:FindFirstChild("HumanoidRootPart")
                                     if not hrp then break end
-                                    _G.ChooseWP2()
-                                    voarAte(hrp, mobHrp.Position + Vector3.new(0, 10, 0))
+                                    
+                                    equiparArma()
+                                    -- Mantém o CFrame cravado em cima do mob farmando rapidamente
+                                    hrp.CFrame = mobHrp.CFrame * CFrame.new(0, 10, 0)
+                                    task.wait()
                                 end
                             end
                         end
                     end)
+                    task.wait(0.1)
                 end
             end)
         end
@@ -3029,40 +2865,4 @@ Tabs.PvpTab:AddToggle("FollowPlayerToggle", {
 Tabs.Races:Section({
 	Title = "V2",
 	TextXAlignment = "Left"
-});
-
-Tabs.PvpTab:Toggle("AutoActivatePvP",{
-	Title = "Auto Activate PvP",
-	Desc = "",
-	Value = false,
-	Callback = function(v)
-		if v then
-			spawn(function()
-				while v do
-					pcall(function()
-						(game:GetService("ReplicatedStorage")).Remotes.CommF_:InvokeServer("ActivatePvp", true);
-					end);
-					task.wait(5);
-				end;
-			end);
-		end;
-	end
-});
-
-Tabs.PvpTab:AddToggle("AutoActivatePvP",{
-	Title = "Auto Activate PvP",
-	Desc = "",
-	Value = false,
-	Callback = function(v)
-		if v then
-			spawn(function()
-				while v do
-					pcall(function()
-						(game:GetService("ReplicatedStorage")).Remotes.CommF_:InvokeServer("ActivatePvp", true);
-					end);
-					task.wait(5);
-				end;
-			end);
-		end;
-	end
 });
