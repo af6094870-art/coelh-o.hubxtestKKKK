@@ -896,6 +896,8 @@ Tabs.ShopTab:AddParagraph({
     Content = "Compre estilos de luta abaixo"
 })
 
+Tabs.ShopTab:AddParagraph({ Title = "buy fighting styles", Content = "Status: down 🔴" })
+
 Tabs.ShopTab:AddParagraph({
     Title = "Abilities",
     Content = "Compre habilidades abaixo"
@@ -2422,7 +2424,7 @@ Tabs.Stack:AddToggle("KillCursedCaptain", {
 
 local BossGhoulStatus = Tabs.Status:AddParagraph({ 
     Title = "Boss Ghoul Status:", 
-    Content = "🔴" 
+    Content = "" 
 })
 
 -- Loop em segundo plano para atualizar o status sem lagar o jogo
