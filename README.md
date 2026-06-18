@@ -2991,23 +2991,3 @@ Tabs.PvpTab:AddToggle("AutoActivatePvP",{
 		end;
 	end
 });
-
-getgenv().Team = "Pirates"
-
-task.spawn(function()
-    if not game:IsLoaded() then 
-        game.Loaded:Wait() 
-    end
-    
-    local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
-    task.wait(1) 
-    
-    pcall(function()
-        if getgenv().Team == "Marines" then
-            commF:InvokeServer("SetTeam", "Marines")
-        -- Se for Pirates (ou qualquer outro valor definido) inicia como Pirates
-        else
-            commF:InvokeServer("SetTeam", "Pirates")
-        end
-    end)
-end)
