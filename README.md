@@ -1503,7 +1503,7 @@ end
 -- ====================================================================
 -- Ajuste o 'Tabs.StackFarm' para a aba correspondente do seu script
 Tabs.Stack:AddToggle("AutoRipIndraToggle", {
-    Title = "Auto Farm rip_indra",
+    Title = "kill rip_indra",
     Default = false,
     Callback = function(Value)
         RipIndraFarmAtivo = Value
@@ -1737,6 +1737,81 @@ Tabs.ShopTab:AddButton({
 
         -- Se sua biblioteca de UI for do estilo Rayfield/Orion, você pode descomentar a linha abaixo para mandar um aviso visual:
         -- game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Coelho Hub", Text = "Todos os códigos foram processados!", Duration = 5})
+    end
+})
+
+local DoughKingFarmAtivo = false
+
+local function atacarDoughKing()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+    local humanoid = character:WaitForChild("Humanoid", 5)
+    
+    if not rootPart or not humanoid then return end
+
+    local doughKing = game:GetService("ReplicatedStorage"):FindFirstChild("Dough King")
+    
+    if doughKing then
+        if _G.ChooseWP2 then
+            if type(_G.ChooseWP2) == "function" then
+                _G.ChooseWP2()
+            elseif type(_G.ChooseWP2) == "string" then
+                local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
+                if ferramenta then
+                    humanoid:EquipTool(ferramenta)
+                end
+            end
+        end
+
+        local alvoCFrame = doughKing:GetPivot()
+        local alvoPos = alvoCFrame.Position
+        local posicaoSegura = alvoPos + Vector3.new(0, 5, 0)
+        
+        local velocidade = _G.VelocidadeFarmBone or 100
+        local distancia = (rootPart.Position - posicaoSegura).Magnitude
+        local tempo = distancia / velocidade
+        
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
+        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoSegura, alvoPos)})
+        
+        tween:Play()
+        
+        if distancia > 15 then
+            tween.Completed:Wait()
+        else
+            rootPart.CFrame = CFrame.new(posicaoSegura, alvoPos)
+        end
+        
+        repeat
+            task.wait()
+            pcall(function()
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and doughKing:GetPivot() then
+                    player.Character.HumanoidRootPart.CFrame = doughKing:GetPivot() * CFrame.new(0, 5, 0)
+                end
+                Attack.Kill2(doughKing, DoughKingFarmAtivo)
+            end)
+        until not DoughKingFarmAtivo or not doughKing.Parent or (doughKing:FindFirstChild("Humanoid") and doughKing.Humanoid.Health <= 0)
+    else
+        task.wait(0.5)
+    end
+end
+
+Tabs.Stack:AddToggle("KillDoughKing", {
+    Title = "Kill Dough King",
+    Default = false,
+    Callback = function(Value)
+        DoughKingFarmAtivo = Value
+        
+        if DoughKingFarmAtivo then
+            task.spawn(function()
+                while DoughKingFarmAtivo do
+                    pcall(atacarDoughKing)
+                    task.wait(0.1)
+                end
+            end)
+        end
     end
 })
 
