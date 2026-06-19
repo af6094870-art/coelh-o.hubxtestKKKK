@@ -2548,9 +2548,6 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
 
 local CursedCaptainFarmAtivo = false
 
--- ====================================================================
--- 2. FUNÇÃO DE VOO, VELOCIDADE E EQUIPAR (LÓGICA)
--- ====================================================================
 local function iniciarVooCursedCaptain()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -2558,40 +2555,43 @@ local function iniciarVooCursedCaptain()
     
     if not rootPart then return end
 
-    -- Busca o Model conforme a imagem do seu Dex
+    -- ✅ TP LITERAL PARA O GHOSTSHIP ANTES DE TUDO
+    local teleportSpawn = workspace:FindFirstChild("Map") and 
+                          workspace.Map:FindFirstChild("GhostShipInterior") and 
+                          workspace.Map.GhostShipInterior:FindFirstChild("TeleportSpawn")
+    
+    if teleportSpawn then
+        rootPart.CFrame = teleportSpawn.CFrame
+        task.wait(0.5) -- Pequena pausa para o servidor registrar o TP
+    else
+        warn("[CoelhoHub] TeleportSpawn não encontrado!")
+        return
+    end
+
+    -- Busca o Cursed Captain no ReplicatedStorage
     local cursedCaptain = game:GetService("ReplicatedStorage"):FindFirstChild("Cursed Captain")
     
     if cursedCaptain then
-        -- Coleta o CFrame do WorldPivot (posição salva no modelo do ReplicatedStorage)
         local alvoCFrame = cursedCaptain:GetPivot()
         local alvoPos = alvoCFrame.Position
         
-        -- Controle de velocidade vindo do seu slider global
         local velocidade = _G.VelocidadeFarmBone or 100
-        
-        -- Cálculo de tempo proporcional à distância
         local distancia = (rootPart.Position - alvoPos).Magnitude
         local tempo = distancia / velocidade
         
-        -- Executa o TweenService para voar suavemente
         local tweenService = game:GetService("TweenService")
         local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
         local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = alvoCFrame})
         
         tween:Play()
-        tween.Completed:Wait() -- Aguarda chegar no local
+        tween.Completed:Wait()
         
-        -- Ativa o equip weapon após a chegada
         if _G.ChooseWP2 then
             if type(_G.ChooseWP2) == "function" then
-                _G.ChooseWP2() -- Executa se for uma função direta
-            else
-                -- Se _G.ChooseWP2 for o nome da arma (string), você chama sua função de equipar aqui.
-                -- Exemplo: pcall(function() character.Humanoid:EquipTool(player.Backpack[_G.ChooseWP2]) end)
+                _G.ChooseWP2()
             end
         end
     else
-        -- Notificação nativa da Fluent caso o boss não exista no momento
         Fluent:Notify({
             Title = "Coelho Hub",
             Content = "Cursed Captain não encontrado no ReplicatedStorage!",
@@ -2607,11 +2607,10 @@ Tabs.Stack:AddToggle("KillCursedCaptain", {
         CursedCaptainFarmAtivo = Value
         
         if CursedCaptainFarmAtivo then
-            -- Thread separada (task.spawn) para o loop rodar sem congelar a Fluent UI
             task.spawn(function()
                 while CursedCaptainFarmAtivo do
                     iniciarVooCursedCaptain()
-                    task.wait(1) -- Pausa de segurança entre as checagens do loop
+                    task.wait(1)
                 end
             end)
         end
