@@ -837,6 +837,34 @@ Tabs.Teleport:AddButton({
     end
 })
 
+Tabs.Status:AddButton({
+    Title = "Hop Server",
+    Description = "",
+    Callback = function()
+        local success, err = pcall(function()
+            local servers = {}
+            for _, v in pairs(game:GetService("Players"):GetPlayers()) do
+                if v ~= game.Players.LocalPlayer then
+                    table.insert(servers, v)
+                end
+            end
+
+            game:GetService("TeleportService"):TeleportToPlaceInstance(
+                game.PlaceId,
+                game.JobId,
+                game.Players.LocalPlayer
+            )
+        end)
+
+        if not success then
+            -- Fallback: força teleporte direto
+            pcall(function()
+                game:GetService("TeleportService"):Teleport(game.PlaceId)
+            end)
+        end
+    end
+})
+
 Tabs.Config:AddToggle("Anti AFK",{
     Title = "Anti AFK",
     Default = true,
