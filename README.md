@@ -1226,9 +1226,8 @@ Tabs.Config:AddSlider("SliderVelocidadeBone", {
     end
 })
 
-
 -- ==============================================================
--- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4)
+-- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4) COM NOTIFICAÇÕES
 -- ==============================================================
 
 -- 1. O Botão para a sua Tab Main
@@ -1241,20 +1240,12 @@ local ToggleRaceAbility = Tabs.Config:AddToggle("AutoRaceAbilityToggle", {
     end
 })
 
-        task.wait(0.8) 
-    else
-        -- Notificação caso você ligue o toggle mas não tenha o item no inventário
-        Fluent:Notify({
-            Title = "Coelho Hub",
-            Content = "Você não tem o Fist of Darkness no inventário!",
-            Duration = 3
-        })
-    end
-end
-
--- 2. O Motor que roda em segundo plano (Sem travar o clique)
+-- 2. O Motor que roda em segundo plano com sistema de verificação
 task.spawn(function()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    
     -- Busca o remote CommE de forma segura
     local CommE = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommE")
 
@@ -1263,18 +1254,54 @@ task.spawn(function()
 
     while task.wait(0.2) do
         if _G.RaceClickAutov3 then
+            local ativouComSucesso = false
+            
             pcall(function()
+                -- Verifica se o jogador realmente tem a V3 ou V4 liberada
+                -- No Blox Fruits, o script de habilidade da raça fica no Character ou na Backpack quando liberado
+                local character = LocalPlayer.Character
+                local possuiHabilidade = character and (character:FindFirstChild("RaceTransfrom") or character:FindFirstChild("Awakening") or LocalPlayer.Backpack:FindFirstChild("Awakening"))
+                
+                -- Se o jogo usa o sistema de dados em "Data"
+                local data = LocalPlayer:FindFirstChild("Data")
+                local raceLevel = data and data:FindFirstChild("RaceLevel") and data.RaceLevel.Value or 1
+
+                -- Checagem interna (se nível da raça for menor que 3 e não achar os scripts de transformação)
+                if raceLevel < 3 and not possuiHabilidade then
+                    Fluent:Notify({
+                        Title = "Coelho Hub",
+                        Content = "You don't have Race V3 unlocked yet!",
+                        Duration = 4
+                    })
+                    -- Desliga o toggle automaticamente para não floodar notificação
+                    ToggleRaceAbility:SetValue(false)
+                    _G.RaceClickAutov3 = false
+                    return
+                end
+
                 -- Dispara o remote oficial do jogo para ativar a raça
                 CommE:FireServer("ActivateAbility")
+                ativouComSucesso = true
                 
-                -- LOOP DE ESPERA INTELIGENTE:
-                -- Em vez de dar um wait(30) seco, ele checa a cada 1 segundo se você desligou o botão
+                -- Notificação de Sucesso
+                Fluent:Notify({
+                    Title = "Coelho Hub",
+                    Content = "V3 Activated successfully!",
+                    Duration = 3
+                })
+            end)
+
+            -- Se passou da checagem e ativou, entra no cooldown inteligente
+            if ativouComSucesso and _G.RaceClickAutov3 then
                 tempoPassado = 0
                 repeat
                     task.wait(1)
                     tempoPassado = tempoPassado + 1
                 until not _G.RaceClickAutov3 or tempoPassado >= tempoEsperaMaximo
-            end)
+            else
+                -- Delay curto caso dê algum erro genérico para não travar o jogo
+                task.wait(0.8)
+            end
         end
     end
 end)
