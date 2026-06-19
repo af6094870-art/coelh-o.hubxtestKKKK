@@ -2086,6 +2086,25 @@ local function equiparArmaSelecionada()
     end
 end
 
+repeat wait() until game:IsLoaded()
+
+local PlaceIds = {
+    [2753915549] = "sea 1",
+    [4442272183] = "sea 2",
+    [7449423635] = "sea 3",
+    [79091703265657] = "Sea 2",
+    [996949360] = "Sea 2",
+    [100117331123089] = "sea 3",
+    [994732206] = "sea 3",
+}
+
+-- CHAVE DE SEGURANÇA: Só continua se o PlaceId atual for mapeado como "sea 3"
+local currentSea = PlaceIds[game.PlaceId]
+if not currentSea or string.lower(currentSea) ~= "sea 3" then
+    -- Se não for Sea 3 (ou o ID não estiver na lista), cancela o script aqui
+    return 
+end
+
 -- ====================================================================
 -- LOGICA PRINCIPAL DO FARM DO RIP_INDRA
 -- ====================================================================
@@ -2137,7 +2156,6 @@ end
 -- Ajuste o 'Tabs.StackFarm' para a aba correspondente do seu script
 Tabs.Stack:AddToggle("AutoRipIndraToggle", {
     Title = "Auto Farm rip_indra",
-    Title = "kill rip_indra",
     Default = false,
     Callback = function(Value)
         RipIndraFarmAtivo = Value
