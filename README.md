@@ -1241,11 +1241,16 @@ local ToggleRaceAbility = Tabs.Config:AddToggle("AutoRaceAbilityToggle", {
     end
 })
 
-Fluent:Notify({
-    Title = "Coelho Hub",
-    Content = "v3 actived",
-    Duration = 3
-})
+        task.wait(0.8) 
+    else
+        -- Notificação caso você ligue o toggle mas não tenha o item no inventário
+        Fluent:Notify({
+            Title = "Coelho Hub",
+            Content = "Você não tem o Fist of Darkness no inventário!",
+            Duration = 3
+        })
+    end
+end
 
 -- 2. O Motor que roda em segundo plano (Sem travar o clique)
 task.spawn(function()
