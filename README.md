@@ -837,34 +837,6 @@ Tabs.Teleport:AddButton({
     end
 })
 
-Tabs.Status:AddButton({
-    Title = "Hop Server",
-    Description = "",
-    Callback = function()
-        local success, err = pcall(function()
-            local servers = {}
-            for _, v in pairs(game:GetService("Players"):GetPlayers()) do
-                if v ~= game.Players.LocalPlayer then
-                    table.insert(servers, v)
-                end
-            end
-
-            game:GetService("TeleportService"):TeleportToPlaceInstance(
-                game.PlaceId,
-                game.JobId,
-                game.Players.LocalPlayer
-            )
-        end)
-
-        if not success then
-            -- Fallback: força teleporte direto
-            pcall(function()
-                game:GetService("TeleportService"):Teleport(game.PlaceId)
-            end)
-        end
-    end
-})
-
 Tabs.Config:AddToggle("Anti AFK",{
     Title = "Anti AFK",
     Default = true,
@@ -1295,6 +1267,41 @@ task.spawn(function()
         end
     end
 end)
+
+Tabs.Status:AddButton({
+    Title = "Hop Server",
+    Description = "Pula para outro servidor",
+    Callback = function()
+        pcall(function()
+            -- Fecha o popup de erro automaticamente
+            local function fecharErro(v)
+                if v.Name == "ErrorPrompt" then
+                    v:GetPropertyChangedSignal("Visible"):Connect(function()
+                        if v.Visible then v.Visible = false end
+                    end)
+                    if v.Visible then v.Visible = false end
+                end
+            end
+
+            for _, v in pairs(game.CoreGui.RobloxPromptGui.promptOverlay:GetChildren()) do
+                fecharErro(v)
+            end
+            game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(fecharErro)
+
+            -- Hop pelo ServerBrowser nativo do Blox Fruits
+            for pagina = 1, math.huge do
+                local servidores = game.ReplicatedStorage.__ServerBrowser:InvokeServer(pagina)
+                if not servidores then break end
+                for jobId, dados in pairs(servidores) do
+                    if jobId ~= game.JobId and dados["Count"] <= 10 then
+                        game.ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", jobId)
+                        return
+                    end
+                end
+            end
+        end)
+    end
+})
 
 -- ==============================================================
 -- BOTÃO DE RESGATAR TODOS OS CÓDIGOS (ABA CONFIG / MISC)
