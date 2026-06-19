@@ -1798,6 +1798,91 @@ task.spawn(function()
     end
 end)
 
+repeat wait() until game:IsLoaded()
+
+local PlaceIds = {
+    [2753915549] = "sea 1",
+    [4442272183] = "sea 2",
+    [7449423635] = "sea 3",
+    [79091703265657] = "Sea 2",
+    [996949360] = "Sea 2",
+    [100117331123089] = "sea 3",
+    [994732206] = "sea 3",
+}
+
+-- CHAVE DE SEGURANÇA: Só continua se o PlaceId atual for mapeado como "sea 3"
+local currentSea = PlaceIds[game.PlaceId]
+if not currentSea or string.lower(currentSea) ~= "sea 3" then
+    -- Se não for Sea 3 (ou o ID não estiver na lista), cancela o script aqui
+    return 
+end
+
+-- ====================================================================
+-- LOGICA PRINCIPAL DO FARM DO RIP_INDRA
+-- ====================================================================
+local function gerenciarFarmRipIndra()
+    -- Certifica de que estamos no World3 (Se você tiver a variável global do mundo)
+    -- Caso seu script não use a variável 'World3', remova essa checagem de mundo.
+    if World3 ~= nil and not World3 then return end
+
+    local enemies = game:GetService("Workspace"):FindFirstChild("Enemies")
+    if not enemies then return end
+
+    -- Procura o Boss nas duas formas possíveis
+    local ripIndra = enemies:FindFirstChild("rip_indra True Form") or enemies:FindFirstChild("rip_indra")
+
+    if ripIndra and ripIndra:FindFirstChild("HumanoidRootPart") and ripIndra:FindFirstChild("Humanoid") and ripIndra.Humanoid.Health > 0 then
+        -- 1. Equipa a arma configurada no Coelho Hub
+        equiparArmaSelecionada()
+
+        -- 2. Voa suavemente até o Boss respeitando a velocidade do Slider
+        -- Fica posicionado 5 studs acima dele para não bugar o CFrame
+        local posicaoBoss = ripIndra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+        voarAtePosicao(posicaoBoss)
+
+        -- 3. Loop de ataque até ele morrer ou desativar o toggle
+        repeat 
+            task.wait()
+            pcall(function()
+                -- Mantém grudado na posição dele enquanto ataca
+                local player = game.Players.LocalPlayer
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and ripIndra:FindFirstChild("HumanoidRootPart") then
+                    player.Character.HumanoidRootPart.CFrame = ripIndra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                end
+
+                -- Usa a sua função de ataque padrão adaptada para o seu toggle
+                Attack.Kill(ripIndra, RipIndraFarmAtivo)
+            end)
+        -- Roda até o boss morrer, sumir do mapa ou você desligar o botão
+        until not RipIndraFarmAtivo or not ripIndra.Parent or ripIndra.Humanoid.Health <= 0
+    else
+        -- Se o boss NÃO estiver vivo, voa com a velocidade do slider até o Altar e espera lá
+        voarAtePosicao(AdminPos)
+        task.wait(0.5) -- Evita lagar o servidor enquanto espera o spawn
+    end
+end
+
+-- ====================================================================
+-- ADICIONANDO O TOGGLE NA SUA TAB DA FLUENT GUI
+-- ====================================================================
+-- Ajuste o 'Tabs.StackFarm' para a aba correspondente do seu script
+Tabs.Stack:AddToggle("AutoRipIndraToggle", {
+    Title = "Auto Farm rip_indra",
+    Default = false,
+    Callback = function(Value)
+        RipIndraFarmAtivo = Value
+
+        if RipIndraFarmAtivo then
+            task.spawn(function()
+                while RipIndraFarmAtivo do
+                    pcall(gerenciarFarmRipIndra)
+                    task.wait(0.1) -- Delay seguro de repetição
+                end
+            end)
+        end
+    end
+})
+
 _G.AutoBuyBones = false -- Começa desligado
 
 -- TOGGLE PARA COMPRAR COM BONES
@@ -1930,7 +2015,7 @@ end
 -- ====================================================================
 -- Substitua StackFarm' pelo nome real da sua aba cadastrada na Fluent
 Tabs.Stack:AddToggle("SpawnBlackbeard", {
-    Title = "Spawn Blackbeard",
+    Title = "Spawn Darkbeard",
     Default = false,
     Callback = function(Value)
         BlackbeardFarmAtivo = Value
@@ -2032,31 +2117,6 @@ Tabs.Others:AddDropdown("BaitAmountDropdown", {
     end
 })
 
-
--- Coordenadas do Altar de Invocação do rip_indra (Castelo do Mar)
-local AdminPos = CFrame.new(-5344.822265625, 423.98541259766, -2725.0930175781)
-local RipIndraFarmAtivo = false
-
--- ====================================================================
--- FUNÇÃO DE MOVIMENTAÇÃO (TWEEN) COM CONTROLE DE VELOCIDADE
--- ====================================================================
-local function voarAtePosicao(alvoCFrame)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-
-    if not rootPart then return end
-
-    -- Pega a velocidade do seu slider global (padrão 100 se estiver nulo)
-    local velocidade = _G.VelocidadeFarmBone or 100
-    local distancia = (rootPart.Position - alvoCFrame.Position).Magnitude
-
-    -- Se já estiver muito perto, teleporta direto para evitar delay
-    if distancia < 10 then
-        rootPart.CFrame = alvoCFrame
-        return
-    end
-
     local tempo = distancia / velocidade
     local tweenService = game:GetService("TweenService")
     local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
@@ -2065,111 +2125,6 @@ local function voarAtePosicao(alvoCFrame)
     tween:Play()
     tween.Completed:Wait() -- Espera o voo terminar
 end
-
--- ====================================================================
--- FUNÇÃO DE EQUIPAR A ARMA DO SEU SLIDER/FUNÇÃO GLOBAL
--- ====================================================================
-local function equiparArmaSelecionada()
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    local humanoid = character and character:FindFirstChild("Humanoid")
-
-    if _G.ChooseWP2 and humanoid then
-        if type(_G.ChooseWP2) == "function" then
-            _G.ChooseWP2() -- Executa se for a função direta
-        elseif type(_G.ChooseWP2) == "string" then
-            local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
-            if ferramenta then
-                humanoid:EquipTool(ferramenta)
-            end
-        end
-    end
-end
-
-repeat wait() until game:IsLoaded()
-
-local PlaceIds = {
-    [2753915549] = "sea 1",
-    [4442272183] = "sea 2",
-    [7449423635] = "sea 3",
-    [79091703265657] = "Sea 2",
-    [996949360] = "Sea 2",
-    [100117331123089] = "sea 3",
-    [994732206] = "sea 3",
-}
-
--- CHAVE DE SEGURANÇA: Só continua se o PlaceId atual for mapeado como "sea 3"
-local currentSea = PlaceIds[game.PlaceId]
-if not currentSea or string.lower(currentSea) ~= "sea 3" then
-    -- Se não for Sea 3 (ou o ID não estiver na lista), cancela o script aqui
-    return 
-end
-
--- ====================================================================
--- LOGICA PRINCIPAL DO FARM DO RIP_INDRA
--- ====================================================================
-local function gerenciarFarmRipIndra()
-    -- Certifica de que estamos no World3 (Se você tiver a variável global do mundo)
-    -- Caso seu script não use a variável 'World3', remova essa checagem de mundo.
-    if World3 ~= nil and not World3 then return end
-
-    local enemies = game:GetService("Workspace"):FindFirstChild("Enemies")
-    if not enemies then return end
-
-    -- Procura o Boss nas duas formas possíveis
-    local ripIndra = enemies:FindFirstChild("rip_indra True Form") or enemies:FindFirstChild("rip_indra")
-
-    if ripIndra and ripIndra:FindFirstChild("HumanoidRootPart") and ripIndra:FindFirstChild("Humanoid") and ripIndra.Humanoid.Health > 0 then
-        -- 1. Equipa a arma configurada no Coelho Hub
-        equiparArmaSelecionada()
-
-        -- 2. Voa suavemente até o Boss respeitando a velocidade do Slider
-        -- Fica posicionado 5 studs acima dele para não bugar o CFrame
-        local posicaoBoss = ripIndra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-        voarAtePosicao(posicaoBoss)
-
-        -- 3. Loop de ataque até ele morrer ou desativar o toggle
-        repeat 
-            task.wait()
-            pcall(function()
-                -- Mantém grudado na posição dele enquanto ataca
-                local player = game.Players.LocalPlayer
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and ripIndra:FindFirstChild("HumanoidRootPart") then
-                    player.Character.HumanoidRootPart.CFrame = ripIndra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-                end
-
-                -- Usa a sua função de ataque padrão adaptada para o seu toggle
-                Attack.Kill(ripIndra, RipIndraFarmAtivo)
-            end)
-        -- Roda até o boss morrer, sumir do mapa ou você desligar o botão
-        until not RipIndraFarmAtivo or not ripIndra.Parent or ripIndra.Humanoid.Health <= 0
-    else
-        -- Se o boss NÃO estiver vivo, voa com a velocidade do slider até o Altar e espera lá
-        voarAtePosicao(AdminPos)
-        task.wait(0.5) -- Evita lagar o servidor enquanto espera o spawn
-    end
-end
-
--- ====================================================================
--- ADICIONANDO O TOGGLE NA SUA TAB DA FLUENT GUI
--- ====================================================================
--- Ajuste o 'Tabs.StackFarm' para a aba correspondente do seu script
-Tabs.Stack:AddToggle("AutoRipIndraToggle", {
-    Title = "Auto Farm rip_indra",
-    Default = false,
-    Callback = function(Value)
-        RipIndraFarmAtivo = Value
-
-        if RipIndraFarmAtivo then
-            task.spawn(function()
-                while RipIndraFarmAtivo do
-                    pcall(gerenciarFarmRipIndra)
-                    task.wait(0.1) -- Delay seguro de repetição
-                end
-            end)
-        end
-    end
-})
 
 local DoughKingFarmAtivo = false
 
