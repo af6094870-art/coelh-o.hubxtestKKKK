@@ -2548,68 +2548,98 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
 
 local CursedCaptainFarmAtivo = false
 
+local function encontrarCursedCaptain()
+    -- Procura o NPC no workspace (não no ReplicatedStorage)
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v.Name == "Cursed Captain" then
+            return v
+        end
+    end
+    return nil
+end
+
 local function iniciarVooCursedCaptain()
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-    
+
     if not rootPart then return end
 
-    -- ✅ TP LITERAL PARA O GHOSTSHIP ANTES DE TUDO
-    local teleportSpawn = workspace:FindFirstChild("Map") and 
-                          workspace.Map:FindFirstChild("GhostShipInterior") and 
-                          workspace.Map.GhostShipInterior:FindFirstChild("TeleportSpawn")
-    
-    if teleportSpawn then
-        rootPart.CFrame = teleportSpawn.CFrame
-        task.wait(0.5) -- Pequena pausa para o servidor registrar o TP
-    else
-        warn("[CoelhoHub] TeleportSpawn não encontrado!")
+    -- ✅ SÓ CONTINUA SE O NPC ESTIVER NO MAPA
+    local cursedCaptainNPC = encontrarCursedCaptain()
+    if not cursedCaptainNPC then
+        warn("[CoelhoHub] Cursed Captain não está no mapa, aguardando...")
         return
     end
 
-    -- Busca o Cursed Captain no ReplicatedStorage
-    local cursedCaptain = game:GetService("ReplicatedStorage"):FindFirstChild("Cursed Captain")
-    
-    if cursedCaptain then
-        local alvoCFrame = cursedCaptain:GetPivot()
-        local alvoPos = alvoCFrame.Position
-        
-        local velocidade = _G.VelocidadeFarmBone or 100
-        local distancia = (rootPart.Position - alvoPos).Magnitude
-        local tempo = distancia / velocidade
-        
-        local tweenService = game:GetService("TweenService")
-        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = alvoCFrame})
-        
-        tween:Play()
-        tween.Completed:Wait()
-        
-        if _G.ChooseWP2 then
-            if type(_G.ChooseWP2) == "function" then
-                _G.ChooseWP2()
-            end
+    local tweenService = game:GetService("TweenService")
+    local velocidade = _G.VelocidadeFarmBone or 100
+
+    -- ✅ 1. VOA ATÉ A ENTRADA DO GHOSTSHIP
+    local ghostShipCFrame = CFrame.new(
+        -6496.89795, 89.0350037, -116.509003,
+        0.819155693, 0, -0.573571265,
+        0, -1.00000024, 0,
+        -0.573571265, 0, -0.819156051
+    )
+
+    local dist1 = (rootPart.Position - ghostShipCFrame.Position).Magnitude
+    local tween1 = tweenService:Create(
+        rootPart,
+        TweenInfo.new(dist1 / velocidade, Enum.EasingStyle.Linear),
+        {CFrame = ghostShipCFrame}
+    )
+    tween1:Play()
+    tween1.Completed:Wait()
+    task.wait(0.3)
+
+    if not CursedCaptainFarmAtivo then return end
+
+    -- ✅ 2. VERIFICA DE NOVO SE O NPC AINDA EXISTE ANTES DE VOAR PRA ELE
+    cursedCaptainNPC = encontrarCursedCaptain()
+    if not cursedCaptainNPC then
+        warn("[CoelhoHub] Cursed Captain sumiu antes de chegar!")
+        return
+    end
+
+    local alvoCFrame = cursedCaptainNPC:GetPivot()
+    local dist2 = (rootPart.Position - alvoCFrame.Position).Magnitude
+    local tween2 = tweenService:Create(
+        rootPart,
+        TweenInfo.new(dist2 / velocidade, Enum.EasingStyle.Linear),
+        {CFrame = alvoCFrame}
+    )
+    tween2:Play()
+    tween2.Completed:Wait()
+    task.wait(0.2)
+
+    if not CursedCaptainFarmAtivo then return end
+
+    -- ✅ 3. EQUIPA ARMA
+    if _G.ChooseWP2 then
+        if type(_G.ChooseWP2) == "function" then
+            _G.ChooseWP2()
+        else
+            pcall(function()
+                player.Character.Humanoid:EquipTool(player.Backpack[_G.ChooseWP2])
+            end)
         end
-    else
-        Fluent:Notify({
-            Title = "Coelho Hub",
-            Content = "Cursed Captain não encontrado no ReplicatedStorage!",
-            Duration = 3
-        })
     end
 end
 
 Tabs.Stack:AddToggle("KillCursedCaptain", {
-    Title = "kill Cursed Captain",
+    Title = "Kill Cursed Captain",
     Default = false,
     Callback = function(Value)
         CursedCaptainFarmAtivo = Value
-        
+
         if CursedCaptainFarmAtivo then
             task.spawn(function()
                 while CursedCaptainFarmAtivo do
-                    iniciarVooCursedCaptain()
+                    local ok, err = pcall(iniciarVooCursedCaptain)
+                    if not ok then
+                        warn("[CoelhoHub] Erro: " .. tostring(err))
+                    end
                     task.wait(1)
                 end
             end)
