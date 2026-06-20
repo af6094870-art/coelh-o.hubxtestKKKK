@@ -1226,6 +1226,53 @@ Tabs.Config:AddSlider("SliderVelocidadeBone", {
     end
 })
 
+-- Criando o Toggle para matar o Soul Reaper na Tabs.Stack
+Tabs.Stack:AddToggle("KillSoulReaperToggle", {
+    Title = "Kill Soul Reaper",
+    Default = false,
+    Callback = function(Value)
+        _G.KillSoulReaper = Value
+        
+        task.spawn(function()
+            while _G.KillSoulReaper do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    
+                    -- 1. Verifica se o Soul Reaper spawnou e está vivo
+                    local reaper = workspace.Enemies:FindFirstChild("Soul Reaper")
+                    local reaperHumanoid = reaper and reaper:FindFirstChild("Humanoid")
+                    local reaperRoot = reaper and reaper:FindFirstChild("HumanoidRootPart")
+                    
+                    if reaper and reaperRoot and reaperHumanoid and reaperHumanoid.Health > 0 and humanoidRootPart then
+                        -- 2. Equipar a arma selecionada em _G.ChooseWP2 se ela não estiver na mão
+                        if _G.ChooseWP2 and not character:FindFirstChild(_G.ChooseWP2) then
+                            local backpack = player:FindFirstChild("Backpack")
+                            local weapon = backpack and backpack:FindFirstChild(_G.ChooseWP2)
+                            if weapon then
+                                character.Humanoid:EquipTool(weapon)
+                            end
+                        end
+
+                        -- 3. Teleporta o jogador ligeiramente acima do boss
+                        humanoidRootPart.CFrame = reaperRoot.CFrame * CFrame.new(0, 5, 0)
+                        
+                        -- 4. Ativa o ataque com a arma equipada
+                        local tool = character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                        end
+                    end
+                end)
+                
+                -- 5. Controle de velocidade dinâmico usando a sua variável global
+                -- Se _G.VelocidadeFarmBone não estiver definida, usa 0.1 como padrão
+                task.wait(_G.VelocidadeFarmBone or 0.1) 
+            end
+        end)
+    end
+})
 
 -- ==============================================================
 -- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4)
