@@ -2546,6 +2546,45 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
     end
 })
 
+-- Criando o Toggle dentro da sua tab.Stack
+Tabs.Stack:AddToggle("HauntedCastleSummon", {
+    Title = "Spawn Soul Reaper",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoSummon = Value
+        
+        -- Loop que executa enquanto o toggle estiver ativo
+        task.spawn(function()
+            while _G.AutoSummon do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    
+                    -- 1. Verifica se o local do Summoner existe
+                    local summoner = workspace.Map:FindFirstChild("Haunted Castle") 
+                                     and workspace.Map["Haunted Castle"]:FindFirstChild("Summoner")
+                    
+                    if summoner and humanoidRootPart then
+                        -- Teleporta o jogador para o Summoner
+                        humanoidRootPart.CFrame = summoner.CFrame
+                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
+                        
+                        -- 2. Procura e equipa a Hallow Essence
+                        local backpack = player:FindFirstChild("Backpack")
+                        local essence = backpack and backpack:FindFirstChild("Hallow Essence")
+                        
+                        if essence then
+                            character.Humanoid:EquipTool(essence)
+                        end
+                    end
+                end)
+                task.wait(1) -- Intervalo do loop (evita lag e crashes)
+            end
+        end)
+    end
+})
+
 local CursedCaptainFarmAtivo = false
 
 -- ====================================================================
@@ -2615,45 +2654,6 @@ Tabs.Stack:AddToggle("KillCursedCaptain", {
                 end
             end)
         end
-    end
-})
-
--- Criando o Toggle dentro da sua tab.Stack
-tab.Stack:AddToggle("HauntedCastleSummon", {
-    Title = "Spawn Soul Reaper",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoSummon = Value
-        
-        -- Loop que executa enquanto o toggle estiver ativo
-        task.spawn(function()
-            while _G.AutoSummon do
-                pcall(function()
-                    local player = game.Players.LocalPlayer
-                    local character = player.Character or player.CharacterAdded:Wait()
-                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                    
-                    -- 1. Verifica se o local do Summoner existe
-                    local summoner = workspace.Map:FindFirstChild("Haunted Castle") 
-                                     and workspace.Map["Haunted Castle"]:FindFirstChild("Summoner")
-                    
-                    if summoner and humanoidRootPart then
-                        -- Teleporta o jogador para o Summoner
-                        humanoidRootPart.CFrame = summoner.CFrame
-                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
-                        
-                        -- 2. Procura e equipa a Hallow Essence
-                        local backpack = player:FindFirstChild("Backpack")
-                        local essence = backpack and backpack:FindFirstChild("Hallow Essence")
-                        
-                        if essence then
-                            character.Humanoid:EquipTool(essence)
-                        end
-                    end
-                end)
-                task.wait(1) -- Intervalo do loop (evita lag e crashes)
-            end
-        end)
     end
 })
 
