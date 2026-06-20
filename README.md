@@ -810,6 +810,111 @@ Tabs.Config:AddToggle("AutoStatToggle", {
     end
 })
 
+
+repeat task.wait() until game:IsLoaded()
+
+-- Identificação do Mundo
+local PlaceIds = {
+    [2753915549] = "Sea 1",
+    [4442272183] = "Sea 2",
+    [7449423635] = "Sea 3",
+    [79091703265657] = "Sea 2",
+    [996949360] = "Sea 2",
+    [100117331123089] = "World 3",
+}
+
+local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
+
+-- Variáveis de Controle
+local BossSelecionado = ""
+local KillBossAtivo = false
+
+-- Configuração dos Bosses por Sea
+local BossesPorMundo = {
+    ["Sea 1"] = {
+        "Em breve...",
+    },
+    ["Sea 2"] = {
+        "Orbitus",
+        "Jeremy",
+        "Don Swan",
+        "Diamond",
+        "Smoke Admiral"
+    },
+    ["Sea 3"] = {
+        "Em breve...",
+    }
+}
+
+-- Pega a lista correta dependendo do Sea atual
+local ListaBosses Atuais = BossesPorMundo[CurrentWorld] or {"Nenhum mundo detectado"}
+
+-- ==============================================================
+-- 1. CRIAÇÃO DO DROPDOWN (FLUENT)
+-- ==============================================================
+local DropdownBoss = Tabs.Stack:AddDropdown("SelectBossDropdown", {
+    Title = "Select Boss",
+    Values = ListaBossesAtuais,
+    Multi = false,
+    Default = 1,
+    Callback = function(Value)
+        BossSelecionado = Value
+    end
+})
+
+-- ==============================================================
+-- FUNÇÃO AUXILIAR: ENCONTRAR O BOSS NO MAPA
+-- ==============================================================
+local function encontrarBoss(nome)
+    if not nome or nome == "" or nome == "Em breve..." then return nil end
+    
+    -- Tratamento especial para o Orbitus que você mencionou estar no ReplicatedStorage/Workspace
+    if nome == "Orbitus" then
+        -- Primeiro checa se ele já foi spawnado no workspace
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Model") and v.Name == "Orbitus" then
+                return v
+            end
+        end
+        return nil
+    end
+
+    -- Busca padrão dentro da pasta Enemies para os outros bosses do Sea 2
+    local enemiesFolder = workspace:FindFirstChild("Enemies")
+    if enemiesFolder then
+        local boss = enemiesFolder:FindFirstChild(nome)
+        if boss and boss:IsA("Model") then
+            return boss
+        end
+    end
+
+    -- Busca genérica caso o jogo spawne o boss fora da pasta Enemies por algum bug
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v.Name == nome then
+            return v
+        end
+    end
+
+    return nil
+end
+
+-- ==============================================================
+-- FUNÇÃO AUXILIAR: EQUIPAR ARMA
+-- ==============================================================
+local function equiparArma()
+    local player = game.Players.LocalPlayer
+    if _G.ChooseWP2 and player.Character and player:FindFirstChild("Backpack") then
+        if type(_G.ChooseWP2) == "function" then
+            _G.ChooseWP2()
+        else
+            local weapon = player.Backpack:FindFirstChild(_G.ChooseWP2)
+            if weapon then
+                player.Character.Humanoid:EquipTool(weapon)
+            end
+        end
+    end
+end
+
 Tabs.Teleport:AddButton({
     Title = "Teleport to Sea 1",
     Callback = function()
@@ -1305,94 +1410,6 @@ task.spawn(function()
         end
     end
 end)
-
-repeat task.wait() until game:IsLoaded()
-
--- Identificação do Mundo
-local PlaceIds = {
-    [2753915549] = "Sea 1",
-    [4442272183] = "Sea 2",
-    [7449423635] = "Sea 3",
-    [79091703265657] = "Sea 2",
-    [996949360] = "Sea 2",
-    [100117331123089] = "World 3",
-}
-
-local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
-
--- Variáveis de Controle
-local BossSelecionado = ""
-local KillBossAtivo = false
-
--- Configuração dos Bosses por Sea
-local BossesPorMundo = {
-    ["Sea 1"] = {
-        "Em breve...",
-    },
-    ["Sea 2"] = {
-        "Orbitus",
-        "Jeremy",
-        "Don Swan",
-        "Diamond",
-        "Smoke Admiral"
-    },
-    ["Sea 3"] = {
-        "Em breve...",
-    }
-}
-
--- Pega a lista correta dependendo do Sea atual
-local ListaBosses Atuais = BossesPorMundo[CurrentWorld] or {"Nenhum mundo detectado"}
-
--- ==============================================================
--- 1. CRIAÇÃO DO DROPDOWN (FLUENT)
--- ==============================================================
-local DropdownBoss = Tabs.Stack:AddDropdown("SelectBossDropdown", {
-    Title = "Select Boss",
-    Values = ListaBossesAtuais,
-    Multi = false,
-    Default = 1,
-    Callback = function(Value)
-        BossSelecionado = Value
-    end
-})
-
--- ==============================================================
--- FUNÇÃO AUXILIAR: ENCONTRAR O BOSS NO MAPA
--- ==============================================================
-local function encontrarBoss(nome)
-    if not nome or nome == "" or nome == "Em breve..." then return nil end
-    
-    -- Tratamento especial para o Orbitus que você mencionou estar no ReplicatedStorage/Workspace
-    if nome == "Orbitus" then
-        -- Primeiro checa se ele já foi spawnado no workspace
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Model") and v.Name == "Orbitus" then
-                return v
-            end
-        end
-        return nil
-    end
-
-    -- Busca padrão dentro da pasta Enemies para os outros bosses do Sea 2
-    local enemiesFolder = workspace:FindFirstChild("Enemies")
-    if enemiesFolder then
-        local boss = enemiesFolder:FindFirstChild(nome)
-        if boss and boss:IsA("Model") then
-            return boss
-        end
-    end
-
-    -- Busca genérica caso o jogo spawne o boss fora da pasta Enemies por algum bug
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") and v.Name == nome then
-            return v
-        end
-    end
-
-    return nil
-end
-
 -- ==============================================================
 -- FUNÇÃO AUXILIAR: EQUIPAR ARMA
 -- ==============================================================
