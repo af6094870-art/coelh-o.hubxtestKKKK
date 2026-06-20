@@ -7,26 +7,15 @@ local Window = Fluent:CreateWindow({
     SubTitle = "by mr",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Acrylic = false, -- Desativa o efeito blur do Windows 11
-    Theme = "Darker", -- CORRIGIDO: "Sakura" não existe na biblioteca original. Use "Darker", "Dark", "Aqua" ou "Light"
+    Acrylic = true,
+    Theme = "Darked",
     MinimizeKey = Enum.KeyCode.RightControl
-})
-
--- Força o Fluent original a tirar a transparência do fundo
-Fluent:ToggleTransparency(false)
-
--- Notificação apenas para testar se carregou
-Fluent:Notify({
-    Title = "Coelho Hub",
-    Content = "welcome!",
-    Duration = 3
 })
 local ScreenGui = Instance.new("ScreenGui")
 local ToggleBtn = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
 
 ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
 ScreenGui.ResetOnSpawn = true
 
 ToggleBtn.Parent = ScreenGui
@@ -114,6 +103,17 @@ local Tabs = {
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:SetIgnoreIndexes({})
+
+local showFloatingButton = true
+Tabs.Main:AddToggle({
+    Title = "Mostrar botão flutuante",
+    Description = "Liga/desliga o ícone do toggle personalizado",
+    Default = true,
+    Callback = function(value)
+        showFloatingButton = value
+        ToggleBtn.Visible = value
+    end
+})
 
 
 -- ========================================================
@@ -378,16 +378,16 @@ local getgc        = getgc        or function() return {} end
 local hookfunction = hookfunction or function() end
 local iscclosure   = iscclosure   or function() return false end
 local getsenv      = getsenv      or function() return {} end
-
+ 
 -- =====================================================
 loadstring(game:HttpGet("https://raw.githubusercontent.com/AnhDzaiScript/Setting/refs/heads/main/FastMax.lua"))()
-
+ 
 local function GetBladeHits()
     local targets = {}
     local function GetDistance(v)
         return (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
     end
-
+ 
     for _, part in pairs({game.Workspace.Enemies, game.Workspace.Characters}) do
         for _, v in pairs(part:GetChildren()) do
             if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Head") and v:FindFirstChild("Humanoid") then
@@ -397,23 +397,23 @@ local function GetBladeHits()
             end
         end
     end
-
+ 
     return targets
 end
-
+ 
 local function AttackAll()
     local player = game.Players.LocalPlayer
     local character = player.Character
     if not character then return end
-
+ 
     local equippedWeapon = character:FindFirstChild("EquippedWeapon")
     if not equippedWeapon then return end
-
+ 
     local enemies = GetBladeHits()
     if #enemies > 0 then
         local netModule = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net")
         netModule:WaitForChild("RE/RegisterAttack"):FireServer(-math.huge)
-
+ 
         local args = {nil, {}}
         for i, v in pairs(enemies) do
             if not args[1] then
@@ -421,23 +421,23 @@ local function AttackAll()
             end
             args[2][i] = {v, v.HumanoidRootPart}
         end
-
+ 
         netModule:WaitForChild("RE/RegisterHit"):FireServer(unpack(args))
     end
 end
-
+ 
 spawn(function()
     while task.wait() do AttackAll() end
 end)
-
+ 
 -- =====================================================
-
+ 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-
+ 
 local Player = Players.LocalPlayer
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
@@ -445,7 +445,7 @@ local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
 local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
-
+ 
 local Config = {
     AttackDistance = 90,
     AttackMobs = true,
@@ -456,10 +456,10 @@ local Config = {
     HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
     AutoClickEnabled = true
 }
-
+ 
 local FastAttack = {}
 FastAttack.__index = FastAttack
-
+ 
 function FastAttack.new()
     local self = setmetatable({
         Debounce = 0,
@@ -472,7 +472,7 @@ function FastAttack.new()
         ShootsPerTarget = {["Dual Flintlock"] = 2},
         SpecialShoots = {["Skull Guitar"] = "TAP", ["Bazooka"] = "Position", ["Cannon"] = "Position", ["Dragonstorm"] = "Overheat"}
     }, FastAttack)
-
+ 
     pcall(function()
         self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
         self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
@@ -481,15 +481,15 @@ function FastAttack.new()
             self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
         end
     end)
-
+ 
     return self
 end
-
+ 
 function FastAttack:IsEntityAlive(entity)
     local humanoid = entity and entity:FindFirstChild("Humanoid")
     return humanoid and humanoid.Health > 0
 end
-
+ 
 function FastAttack:CheckStun(Character, Humanoid, ToolTip)
     local Stun = Character:FindFirstChild("Stun")
     local Busy = Character:FindFirstChild("Busy")
@@ -500,12 +500,12 @@ function FastAttack:CheckStun(Character, Humanoid, ToolTip)
     end
     return true
 end
-
+ 
 function FastAttack:GetBladeHits(Character, Distance)
     local Position = Character:GetPivot().Position
     local BladeHits = {}
     Distance = Distance or Config.AttackDistance
-
+ 
     local function ProcessTargets(Folder)
         for _, Enemy in ipairs(Folder:GetChildren()) do
             if Enemy ~= Character and self:IsEntityAlive(Enemy) then
@@ -520,17 +520,17 @@ function FastAttack:GetBladeHits(Character, Distance)
             end
         end
     end
-
+ 
     if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end
     if Config.AttackPlayers then ProcessTargets(Workspace.Characters) end
-
+ 
     return BladeHits
 end
-
+ 
 function FastAttack:GetClosestEnemy(Character, Distance)
     local BladeHits = self:GetBladeHits(Character, Distance)
     local Closest, MinDistance = nil, math.huge
-
+ 
     for _, Hit in ipairs(BladeHits) do
         local Magnitude = (Character:GetPivot().Position - Hit[2].Position).Magnitude
         if Magnitude < MinDistance then
@@ -540,7 +540,7 @@ function FastAttack:GetClosestEnemy(Character, Distance)
     end
     return Closest
 end
-
+ 
 function FastAttack:GetCombo()
     local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
     Combo = Combo >= Config.MaxCombo and 1 or Combo + 1
@@ -548,22 +548,22 @@ function FastAttack:GetCombo()
     self.M1Combo = Combo
     return Combo
 end
-
+ 
 function FastAttack:ShootInTarget(TargetPosition)
     local Character = Player.Character
     if not self:IsEntityAlive(Character) then return end
-
+ 
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped or Equipped.ToolTip ~= "Gun" then return end
-
+ 
     local Cooldown = Equipped:FindFirstChild("Cooldown") and Equipped.Cooldown.Value or 0.3
     if (tick() - self.ShootDebounce) < Cooldown then return end
-
+ 
     local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
     if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
         Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
         GunValidator:FireServer(self:GetValidator2())
-
+ 
         if ShootType == "TAP" then
             Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
         else
@@ -577,7 +577,7 @@ function FastAttack:ShootInTarget(TargetPosition)
         self.ShootDebounce = tick()
     end
 end
-
+ 
 function FastAttack:GetValidator2()
     local v1 = getupvalue(self.ShootFunction, 15)
     local v2 = getupvalue(self.ShootFunction, 13)
@@ -586,14 +586,14 @@ function FastAttack:GetValidator2()
     local v5 = getupvalue(self.ShootFunction, 14)
     local v6 = getupvalue(self.ShootFunction, 12)
     local v7 = getupvalue(self.ShootFunction, 18)
-
+ 
     local v8 = v6 * v2
     local v9 = (v5 * v2 + v6 * v1) % v3
     v9 = (v9 * v3 + v8) % v4
     v5 = math.floor(v9 / v3)
     v6 = v9 - v5 * v3
     v7 = v7 + 1
-
+ 
     setupvalue(self.ShootFunction, 15, v1)
     setupvalue(self.ShootFunction, 13, v2)
     setupvalue(self.ShootFunction, 16, v3)
@@ -601,14 +601,14 @@ function FastAttack:GetValidator2()
     setupvalue(self.ShootFunction, 14, v5)
     setupvalue(self.ShootFunction, 12, v6)
     setupvalue(self.ShootFunction, 18, v7)
-
+ 
     return math.floor(v9 / v4 * 16777215), v7
 end
-
+ 
 function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
     self.EnemyRootPart = nil
     local BladeHits = self:GetBladeHits(Character)
-
+ 
     if self.EnemyRootPart then
         RegisterAttack:FireServer(Cooldown)
         if self.CombatFlags and self.HitFunction then
@@ -618,34 +618,34 @@ function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
         end
     end
 end
-
+ 
 function FastAttack:UseFruitM1(Character, Equipped, Combo)
     local Targets = self:GetBladeHits(Character)
     if not Targets[1] then return end
-
+ 
     local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
     Equipped.LeftClickRemote:FireServer(Direction, Combo)
 end
-
+ 
 function FastAttack:Attack()
     if not Config.AutoClickEnabled or (tick() - self.Debounce) < Config.AttackCooldown then return end
     local Character = Player.Character
     if not Character or not self:IsEntityAlive(Character) then return end
-
+ 
     local Humanoid = Character.Humanoid
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped then return end
-
+ 
     local ToolTip = Equipped.ToolTip
     if not table.find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
-
+ 
     local Cooldown = Equipped:FindFirstChild("Cooldown") and Equipped.Cooldown.Value or Config.AttackCooldown
     if not self:CheckStun(Character, Humanoid, ToolTip) then return end
-
+ 
     local Combo = self:GetCombo()
     Cooldown = Cooldown + (Combo >= Config.MaxCombo and 0.05 or 0)
     self.Debounce = Combo >= Config.MaxCombo and ToolTip ~= "Gun" and (tick() + 0.05) or tick()
-
+ 
     if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
         self:UseFruitM1(Character, Equipped, Combo)
     elseif ToolTip == "Gun" then
@@ -657,12 +657,12 @@ function FastAttack:Attack()
         self:UseNormalClick(Character, Humanoid, Cooldown)
     end
 end
-
+ 
 local AttackInstance = FastAttack.new()
 table.insert(AttackInstance.Connections, RunService.Stepped:Connect(function()
     AttackInstance:Attack()
 end))
-
+ 
 -- getgc só existe no executor, no Studio retorna {} então o loop não faz nada
 for _, v in pairs(getgc(true)) do
     if typeof(v) == "function" and iscclosure(v) then
@@ -675,7 +675,7 @@ for _, v in pairs(getgc(true)) do
         end
     end
 end
-
+ 
 -- =====================================================
 -- Fast 2
 -- =====================================================
@@ -684,7 +684,7 @@ local Net2 = Modules2.Net
 local Register_Hit = Net2:WaitForChild("RE/RegisterHit")
 local Register_Attack = Net2:WaitForChild("RE/RegisterAttack")
 local Funcs = {}
-
+ 
 local function GetAllBladeHits()
     local bladehits = {}
     for _, v in pairs(workspace.Enemies:GetChildren()) do
@@ -695,7 +695,7 @@ local function GetAllBladeHits()
     end
     return bladehits
 end
-
+ 
 local function Getplayerhit()
     local bladehits = {}
     for _, v in pairs(workspace.Characters:GetChildren()) do
@@ -706,7 +706,7 @@ local function Getplayerhit()
     end
     return bladehits
 end
-
+ 
 function Funcs:Attack()
     local bladehits = {}
     for _, v in pairs(GetAllBladeHits()) do
@@ -716,7 +716,7 @@ function Funcs:Attack()
         table.insert(bladehits, v)
     end
     if #bladehits == 0 then return end
-
+ 
     local args = {
         [1] = nil,
         [2] = {},
@@ -896,7 +896,179 @@ Tabs.ShopTab:AddParagraph({
     Content = "Compre estilos de luta abaixo"
 })
 
-Tabs.ShopTab:AddParagraph({ Title = "buy fighting styles", Content = "Status: down 🔴" })
+-- ==============================================================
+-- AUTO BUY ESTILOS DE LUTA - POSIÇÕES FIXAS OFICIAIS (COELHO HUB)
+-- ==============================================================
+
+-- Cache de Serviços e Configurações Globais
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local plr = Players.LocalPlayer
+
+_G.Settings = _G.Settings or {}
+_G.Settings.Shop = _G.Settings.Shop or {}
+
+-- BANCO DE DADOS DE CFRAMES (Atualizado com a sua coordenada exata do Shafi)
+local NPC_POSITIONS = {
+    ["DarkStep"]       = CFrame.new(-5048.45996, 371.354584, -3177.4939) ,
+    ["Electro"]        = CFrame.new(-4994.93018, 314.557556, -3198.11987),
+    ["WaterKungFu"]    = CFrame.new(-5019.89941, 371.354584, -3190.61987),
+    ["DragonBreath"]   = CFrame.new(-4980.09473, 371.354584, -3206.14917), -- Sabi / Daermon
+    ["Superhuman"]     = CFrame.new(-5005.6626,  374.42334,  -3195.02759),
+    ["DeathStep"]      = CFrame.new(-5003.19482, 318.014496, -3222.10449),
+    ["SharkmanKarate"] = CFrame.new(-4968.7417,  317.886932, -3219.92822),
+    ["ElectricClaw"]   = CFrame.new(-10375.2676, 334.764008, -10132.6826),
+    ["DragonTalon"]    = CFrame.new(5657.89844,  1214.87695, 863.23822),
+    ["Godhuman"]       = CFrame.new(-13771.4043, 337.733002, -9876.94336),
+    ["SanguineArt"]    = CFrame.new(-16511.1152, 26.8119965, -189.201233) -- Coordenada real do Shafi aplicada!
+}
+
+Tabs.ShopTab:AddToggle("ToggleBlackLeg", {
+    Title = "Auto Dark Step (Black Leg)",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DarkStep"] = Value
+        if Value then
+            IniciarLoopEstilo("DarkStep", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleElectro", {
+    Title = "Auto Electro",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Electro"] = Value
+        if Value then
+            IniciarLoopEstilo("Electro", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleFishman", {
+    Title = "Auto Water Kung Fu",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["WaterKungFu"] = Value
+        if Value then
+            IniciarLoopEstilo("WaterKungFu", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleDragonBreath", {
+    Title = "Auto Dragon Breath",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DragonBreath"] = Value
+        if Value then
+            IniciarLoopEstilo("DragonBreath", function()
+                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "1")
+                replicated.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSuperhuman", {
+    Title = "Auto Superhuman",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Superhuman"] = Value
+        if Value then
+            IniciarLoopEstilo("Superhuman", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleDeathStep", {
+    Title = "Auto Death Step",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DeathStep"] = Value
+        if Value then
+            IniciarLoopEstilo("DeathStep", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSharkman", {
+    Title = "Auto Sharkman Karate",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["SharkmanKarate"] = Value
+        if Value then
+            IniciarLoopEstilo("SharkmanKarate", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate", true)
+                replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleElectricClaw", {
+    Title = "Auto Electric Claw",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["ElectricClaw"] = Value
+        if Value then
+            IniciarLoopEstilo("ElectricClaw", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleDragonTalon", {
+    Title = "Auto Dragon Talon",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["DragonTalon"] = Value
+        if Value then
+            IniciarLoopEstilo("DragonTalon", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleGodhuman", {
+    Title = "Auto Godhuman",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["Godhuman"] = Value
+        if Value then
+            IniciarLoopEstilo("Godhuman", function()
+                replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+            end)
+        end
+    end
+})
+
+Tabs.ShopTab:AddToggle("ToggleSanguine", {
+    Title = "Auto Sanguine Art",
+    Default = false,
+    Callback = function(Value)
+        _G.Settings.Shop["SanguineArt"] = Value
+        if Value then
+            IniciarLoopEstilo("SanguineArt", function()
+                replicated.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
+                replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
+            end)
+        end
+    end
+})
 
 Tabs.ShopTab:AddParagraph({
     Title = "Abilities",
@@ -1074,13 +1246,13 @@ local ToggleFruit = Tabs.Fruit:AddToggle("ToggleGacha", {
     Default = false,
     Callback = function(Value)
         _G.GachaAtivo = Value -- Usa uma variável global para controle
-
+        
         if _G.GachaAtivo then
             -- Cria a thread para o loop não travar o resto do seu script
             task.spawn(function()
                 local commF = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_")
                 local args = {"Cousin", "Buy", "DLCBoxData"}
-
+                
                 while _G.GachaAtivo do
                     pcall(function()
                         commF:InvokeServer(unpack(args))
@@ -1226,8 +1398,9 @@ Tabs.Config:AddSlider("SliderVelocidadeBone", {
     end
 })
 
+
 -- ==============================================================
--- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4) COM NOTIFICAÇÕES
+-- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4)
 -- ==============================================================
 
 -- 1. O Botão para a sua Tab Main
@@ -1240,70 +1413,32 @@ local ToggleRaceAbility = Tabs.Config:AddToggle("AutoRaceAbilityToggle", {
     end
 })
 
--- 2. O Motor que roda em segundo plano com sistema de verificação
+-- 2. O Motor que roda em segundo plano (Sem travar o clique)
 task.spawn(function()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-
     -- Busca o remote CommE de forma segura
     local CommE = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommE")
-
+    
     local tempoEsperaMaximo = 30 -- Tempo de Cooldown da habilidade
     local tempoPassado = 0
 
     while task.wait(0.2) do
         if _G.RaceClickAutov3 then
-            local ativouComSucesso = false
-            
             pcall(function()
-                -- Verifica se o jogador realmente tem a V3 ou V4 liberada
-                -- No Blox Fruits, o script de habilidade da raça fica no Character ou na Backpack quando liberado
-                local character = LocalPlayer.Character
-                local possuiHabilidade = character and (character:FindFirstChild("RaceTransfrom") or character:FindFirstChild("Awakening") or LocalPlayer.Backpack:FindFirstChild("Awakening"))
-                
-                -- Se o jogo usa o sistema de dados em "Data"
-                local data = LocalPlayer:FindFirstChild("Data")
-                local raceLevel = data and data:FindFirstChild("RaceLevel") and data.RaceLevel.Value or 1
-
-                -- Checagem interna (se nível da raça for menor que 3 e não achar os scripts de transformação)
-                if raceLevel < 3 and not possuiHabilidade then
-                    Fluent:Notify({
-                        Title = "Coelho Hub",
-                        Content = "You don't have Race V3 unlocked yet!",
-                        Duration = 4
-                    })
-                    -- Desliga o toggle automaticamente para não floodar notificação
-                    ToggleRaceAbility:SetValue(false)
-                    _G.RaceClickAutov3 = false
-                    return
-                end
-
                 -- Dispara o remote oficial do jogo para ativar a raça
                 CommE:FireServer("ActivateAbility")
-                ativouComSucesso = true
                 
-                -- Notificação de Sucesso
-                Fluent:Notify({
-                    Title = "Coelho Hub",
-                    Content = "V3 Activated successfully!",
-                    Duration = 3
-                })
-            end)
-
-            -- Se passou da checagem e ativou, entra no cooldown inteligente
-            if ativouComSucesso and _G.RaceClickAutov3 then
+                -- LOOP DE ESPERA INTELIGENTE:
+                -- Em vez de dar um wait(30) seco, ele checa a cada 1 segundo se você desligou o botão
                 tempoPassado = 0
                 repeat
                     task.wait(1)
                     tempoPassado = tempoPassado + 1
                 until not _G.RaceClickAutov3 or tempoPassado >= tempoEsperaMaximo
-            else
-                -- Delay curto caso dê algum erro genérico para não travar o jogo
-                task.wait(0.8)
-            end
+            end)
         end
     end
+end)
 
 -- ==============================================================
 -- BOTÃO DE RESGATAR TODOS OS CÓDIGOS (ABA CONFIG / MISC)
@@ -1312,7 +1447,7 @@ Tabs.ShopTab:AddButton({
     Title = "Redeem All Codes",
     Callback = function()
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+        
         -- Lista de códigos atualizada e limpa de duplicatas inúteis
         local Codes = {
             "REWARDMAN", "NEWTROLL", "KITT_RESET", "Sub2CaptainMaui", "DEVSCOOKING",
@@ -1322,18 +1457,18 @@ Tabs.ShopTab:AddButton({
             "BIGNREWS", "SUB2UNCLEKIZARU", "ENYU_IS_PRO", "MAGICBUS", "JCWK",
             "STARCODEHEO", "KITTGAMING", "CHANDLER"
         }
-
+        
         -- Caminho oficial e atualizado do Remote de códigos do Blox Fruits
         local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
-
+        
         if not CommF then
             -- Fallback de aviso caso a biblioteca de notificação não esteja indexada como 'bearlib'
             print("Coelho Hub: Erro - Sistema de Remotes não encontrado.")
             return
         end
-
+        
         print("Coelho Hub: Iniciando resgate automatizado de códigos...")
-
+        
         for _, code in ipairs(Codes) do
             pcall(function()
                 -- O Blox Fruits usa InvokeServer no CommF_ passando o argumento "RedeemCode"
@@ -1342,9 +1477,9 @@ Tabs.ShopTab:AddButton({
             -- Delay de proteção de 0.5 segundos por código para o servidor processar sem dar lag ou kick
             task.wait(0.5) 
         end
-
+        
         print("Coelho Hub: Todos os códigos disponíveis foram processados!")
-
+        
         -- Se sua biblioteca de UI for do estilo Rayfield/Orion, você pode descomentar a linha abaixo para mandar um aviso visual:
         -- game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Coelho Hub", Text = "Todos os códigos foram processados!", Duration = 5})
     end
@@ -1365,22 +1500,24 @@ Tabs.ShopTab:AddButton({
 _G.FarmEliteHunt = false
 _G.VelocidadeFarmBone = _G.VelocidadeFarmBone or 350
 
-local function IrAteNPCSeguro(nomeDoNPC)
+local function IrAteNPCSeguro(nomeDoNPC, velocidade)
     local Players = game:GetService("Players")
     local Workspace = game:GetService("Workspace")
     local TweenService = game:GetService("TweenService")
-
+    
     local plr = Players.LocalPlayer
     local char = plr.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
-    local npcAlvo = Workspace:FindFirstChild("Enemies") and Workspace.Enemies:FindFirstChild(nomeDoNPC) or Workspace:FindFirstChild(nomeDoNPC)
+    local npcAlvo = (Workspace:FindFirstChild("NPCs") and Workspace.NPCs:FindFirstChild(nomeDoNPC))
+        or (Workspace:FindFirstChild("Enemies") and Workspace.Enemies:FindFirstChild(nomeDoNPC))
+        or Workspace:FindFirstChild(nomeDoNPC)
 
-    if npcAlvo and npcAlvo:FindFirstChild("Humanoid") and npcAlvo.Humanoid.Health > 0 and npcAlvo:FindFirstChild("HumanoidRootPart") then
+    if npcAlvo and npcAlvo:FindFirstChild("HumanoidRootPart") then
         local destinoSeguro = npcAlvo.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
         local distancia = (hrp.Position - destinoSeguro.Position).Magnitude
-        local velocidade = _G.VelocidadeFarmBone or 350
+        local velocidade = velocidade or _G.VelocidadeFarmBone or 350
         local tempo = math.max(distancia / velocidade, 0.05)
 
         local tween = TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destinoSeguro})
@@ -1401,12 +1538,56 @@ local ToggleEliteHunt = Tabs.Main:AddToggle("EliteHuntToggle", {
     Default = false,
     Callback = function(Value)
         _G.FarmEliteHunt = Value
-        if not Value then
+        if Value then
+            local sucesso = IrAteNPCSeguro("Elite Hunter", 250)
+            if not sucesso then
+                warn("Elite Hunter não encontrado em workspace.NPCs")
+            end
+        else
             local char = game.Players.LocalPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if hrp then
                 game:GetService("TweenService"):Create(hrp, TweenInfo.new(0.1), {CFrame = hrp.CFrame}):Play()
             end
+        end
+    end
+})
+
+local ToggleQuestFly = Tabs.Main:AddToggle("AutoQuestFly", {
+    Title = "Auto Quest Fly",
+    Description = "Vai para o quest em Main e equipa arma",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoQuestFly = Value
+
+        if Value then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local TweenService = game:GetService("TweenService")
+                local LocalPlayer = Players.LocalPlayer
+
+                while _G.AutoQuestFly do
+                    local questInfo = CheckQuest()
+                    if questInfo and questInfo.CFrameQuest then
+                        TryGoToMainTab()
+                        _G.ChooseWP2()
+
+                        local character = LocalPlayer.Character
+                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            local destino = questInfo.CFrameQuest
+                            local distancia = (hrp.Position - destino.Position).Magnitude
+                            local tempo = math.max(distancia / (_G.VelocidadeFarmBone or 350), 0.05)
+                            local tween = TweenService:Create(hrp, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = destino})
+                            tween:Play()
+                            tween.Completed:Wait()
+                        end
+                    else
+                        warn("CheckQuest não retornou destino válido para este nível/mundo")
+                    end
+                    task.wait(1)
+                end
+            end)
         end
     end
 })
@@ -1513,7 +1694,7 @@ local BannerCreditos = nil
 
 local function criarImagem()
     if BannerCreditos then return end
-
+    
     local screenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("Fluent")
     if not screenGui then return end
 
@@ -1657,23 +1838,23 @@ local function tweenTo(targetCFrame)
     local player = game:GetService("Players").LocalPlayer
     local character = player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-
+    
     local hrp = character.HumanoidRootPart
     local distance = (hrp.Position - targetCFrame.Position).Magnitude
-
+    
     -- Evita erro de divisão por zero se a velocidade for 0
     local speed = _G.VelocidadeFarmBone > 0 and _G.VelocidadeFarmBone or 100
     local duration = distance / speed
-
+    
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
-
+    
     tween:Play()
     -- Espera o tween acabar ou o farm ser desligado para não travar o loop
     while tween.PlaybackState == Enum.PlaybackState.Playing and _G.AutoFarmChest do
         task.wait()
     end
-
+    
     if not _G.AutoFarmChest then
         tween:Cancel() -- Para o tween imediatamente se você desligar o cheat
     end
@@ -1689,11 +1870,11 @@ spawn(function()
                 local Player = Players.LocalPlayer
                 local Character = Player.Character or Player.CharacterAdded:Wait()                
                 if not Character then return end                
-
+                
                 local Position = Character:GetPivot().Position
                 local Chests = CollectionService:GetTagged("_ChestTagged")      
                 local Distance, Nearest = math.huge, nil  
-
+                
                 for i = 1, #Chests do
                     local Chest = Chests[i]
                     local Magnitude = (Chest:GetPivot().Position - Position).Magnitude        
@@ -1704,7 +1885,7 @@ spawn(function()
                         end
                     end
                 end
-
+                
                 -- Se achou o baú mais próximo, faz o Tween até ele
                 if Nearest and _G.AutoFarmChest then 
                     tweenTo(Nearest:GetPivot()) 
@@ -1738,7 +1919,7 @@ local function TweenPlayer(TargetCFrame)
     if not hrp then return end
 
     local distancia = (hrp.Position - TargetCFrame.Position).Magnitude
-
+    
     if distancia < 5 then
         hrp.CFrame = TargetCFrame
         return
@@ -1746,16 +1927,16 @@ local function TweenPlayer(TargetCFrame)
 
     local velocidadeAtual = _G.VelocidadeFarmBone
     if velocidadeAtual <= 0 then velocidadeAtual = 1 end 
-
+    
     local tempoCalculado = distancia / velocidadeAtual
     local tween = TweenService:Create(hrp, TweenInfo.new(tempoCalculado, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
     tween:Play()
-
+    
     -- Aguarda o término do movimento de forma eficiente
     repeat 
         RunService.Heartbeat:Wait() 
     until (hrp.Position - TargetCFrame.Position).Magnitude < 2 or not _G.Settings.Farm["Auto Farm Fruit Tween"]
-
+    
     if not _G.Settings.Farm["Auto Farm Fruit Tween"] then
         tween:Cancel()
     end
@@ -1795,26 +1976,26 @@ task.spawn(function()
         if _G.Settings.Farm["Auto Farm Fruit Tween"] then
             local items = Workspace:GetChildren()
             local frutaEncontradaNoTurno = false
-
+            
             -- Varre o Workspace usando o seu loop numérico indexado de alta performance
             for i = 1, #items do
                 if not _G.Settings.Farm["Auto Farm Fruit Tween"] then break end
-
+                
                 local v = items[i]
                 local handle = v and v:FindFirstChild("Handle")
-
+                
                 -- Se encontrar uma fruta no mapa, vai até ela (Tween) por ordem de aparição
                 if handle and v.Name:find("Fruit") then
                     frutaEncontradaNoTurno = true
-
+                    
                     -- Fica preso na fruta atual indo até ela e pegando até que ela suma do mapa
                     repeat
                         RunService.Heartbeat:Wait()
                         TweenPlayer(handle.CFrame)
-
+                        
                         local char = plr.Character
                         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+                        
                         if hrp and handle then
                             -- Força a coleta por toque físico direto na fruta
                             firetouchinterest(hrp, handle, 0)
@@ -1824,7 +2005,7 @@ task.spawn(function()
                     until not _G.Settings.Farm["Auto Farm Fruit Tween"] or not v.Parent
                 end
             end
-
+            
             -- Se varreu o servidor inteiro e não achou mais nenhuma fruta, espera antes de checar de novo
             if not frutaEncontradaNoTurno then
                 task.wait(1) -- Delay inteligente para economizar CPU quando o server estiver limpo
@@ -1843,7 +2024,7 @@ Tabs.Main:AddToggle("AutoBuyBonesToggle", {
     Default = false,
     Callback = function(Value)
         _G.AutoBuyBones = Value
-
+        
         if Value then
             task.spawn(function()
                 while _G.AutoBuyBones do
@@ -1858,68 +2039,6 @@ Tabs.Main:AddToggle("AutoBuyBonesToggle", {
                         game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
                     end)
                     task.wait(0.5) -- Intervalo entre cada compra (ajuste se quiser mais rápido ou mais lento)
-                end
-            end)
-        end
-    end
-})
-
-Tabs.Stack:AddToggle("KillRipIndra", {
-    Title = "Kill rip_indra",
-    Default = false,
-    Callback = function(Value)
-        _G.RipIndraFarmAtivo = Value
-
-        if _G.RipIndraFarmAtivo then
-            task.spawn(function()
-                while _G.RipIndraFarmAtivo do
-                    pcall(function()
-                        -- 1. Procura o boss (Prioriza o True Form)
-                        local enemies = workspace:FindFirstChild("Enemies") -- Ajuste se a pasta for diferente
-                        local boss = enemies and (enemies:FindFirstChild("rip_indra True Form") or enemies:FindFirstChild("rip_indra"))
-                        
-                        if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                            
-                            -- 2. Ativa/Equipa a arma configurada em _G.ChooseWP2
-                            local LocalPlayer = game:GetService("Players").LocalPlayer
-                            local backpack = LocalPlayer:FindFirstChild("Backpack")
-                            local character = LocalPlayer.Character
-                            
-                            if character and backpack then
-                                local weapon = backpack:FindFirstChild(_G.ChooseWP2)
-                                if weapon then
-                                    character:WaitForChild("Humanoid"):EquipTool(weapon)
-                                end
-                            end
-                            
-                            -- 3. Sistema de Tween (Voo) baseado na velocidade global
-                            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-                            if rootPart then
-                                local targetPart = boss.HumanoidRootPart
-                                local distance = (rootPart.Position - targetPart.Position).Magnitude
-                                
-                                -- Evita divisão por zero se _G.VelocidadeFarmBone não estiver definida
-                                local speed = _G.VelocidadeFarmBone or 250 
-                                local duration = distance / speed
-                                
-                                local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                                local tween = game:GetService("TweenService"):Create(rootPart, tweenInfo, {CFrame = targetPart.CFrame})
-                                
-                                tween:Play()
-                                
-                                -- Aguarda o tween acabar ou o toggle ser desligado
-                                while tween.PlaybackState == Enum.PlaybackState.Playing and _G.RipIndraFarmAtivo do
-                                    task.wait(0.1)
-                                end
-                                
-                                -- Se o jogador desativar o toggle no meio do voo, cancela o tween imediatamente
-                                if not _G.RipIndraFarmAtivo then
-                                    tween:Cancel()
-                                end
-                            end
-                        end
-                    end)
-                    task.wait(0.1) -- Delay seguro do loop principal
                 end
             end)
         end
@@ -1945,20 +2064,20 @@ Tabs.Config:AddSlider("BringMobRadiusSlider", {
 _G.BringMobFuncion = function(alvoPrincipal)
     -- Só executa se o slider estiver acima de 300
     if not _G.BringMobRadius or _G.BringMobRadius <= 300 then return end
-
+    
     local character = game.Players.LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
+    
     -- Varre a pasta de inimigos
     for _, mob in pairs(workspace.Enemies:GetChildren()) do
         local mobHrp = mob:FindFirstChild("HumanoidRootPart")
         local mobHumanoid = mob:FindFirstChildOfClass("Humanoid")
-
+        
         -- Verifica se o mob está vivo e ignora o alvo principal do voo
         if mobHrp and mobHumanoid and mobHumanoid.Health > 0 and mob ~= alvoPrincipal then
             local distanciaMob = (hrp.Position - mobHrp.Position).Magnitude
-
+            
             -- Se estiver dentro do raio definido no Slider, puxa exatamente 3 studs abaixo
             if distanciaMob <= _G.BringMobRadius then
                 -- O CFrame pega a sua posição e subtrai 3 studs apenas na altura (eixo Y)
@@ -1968,93 +2087,16 @@ _G.BringMobFuncion = function(alvoPrincipal)
     end
 end
 
--- ====================================================================
--- COORDENADAS E CONFIGURAÇÕES
--- ====================================================================
--- Posição exata que você enviou
-local posicaoInvocacao = Vector3.new(3780.00390625, 15, -3499.56689453125)
-local BlackbeardFarmAtivo = false
-
--- ====================================================================
--- FUNÇÃO DE VOO E EQUIPAR FIST OF DARKNESS
--- ====================================================================
-local function voarEInvocarBlackbeard()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-    local humanoid = character:WaitForChild("Humanoid", 5)
-
-    if not rootPart or not humanoid then return end
-
-    -- 1. Pega a velocidade definida no seu slider global (padrão 100 se não achar)
-    local velocidade = _G.VelocidadeFarmBone or 100
-
-    -- 2. Calcula tempo de voo baseado na distância
-    local distancia = (rootPart.Position - posicaoInvocacao).Magnitude
-    local tempo = distancia / velocidade
-
-    -- 3. Executa o voo via TweenService
-    local tweenService = game:GetService("TweenService")
-    local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-    local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoInvocacao)})
-
-    tween:Play()
-    tween.Completed:Wait() -- Espera o personagem pousar na base de invocação
-
-    -- 4. LÓGICA DE EQUIPAR O FIST OF DARKNESS
-    -- Procura primeiro na mochila (Backpack)
-    local fist = player.Backpack:FindFirstChild("Fist of Darkness") 
-        or character:FindFirstChild("Fist of Darkness") -- Ou se já estiver na mão
-        
-    if fist then
-        -- Se estiver na mochila, equipa na mão do personagem
-        if fist.Parent == player.Backpack then
-            humanoid:EquipTool(fist)
-        end
-        
-        -- Pequena pausa para garantir que o item foi equipado e tocou na base/altar
-        task.wait(0.5) 
-    else
-        -- Notificação caso você ligue o toggle mas não tenha o item no inventário
-        Fluent:Notify({
-            Title = "Coelho Hub",
-            Content = "Você não tem o Fist of Darkness no inventário!",
-            Duration = 3
-        })
-    end
-end
-
--- ====================================================================
--- ADICIONANDO O TOGGLE NA SUA TAB (ESTILO Tabs.SuaTab)
--- ====================================================================
--- Substitua StackFarm' pelo nome real da sua aba cadastrada na Fluent
-Tabs.Stack:AddToggle("SpawnBlackbeard", {
-    Title = "Spawn Blackbeard",
-    Default = false,
-    Callback = function(Value)
-        BlackbeardFarmAtivo = Value
-
-        if BlackbeardFarmAtivo then
-            task.spawn(function()
-                while BlackbeardFarmAtivo do
-                    voarEInvocarBlackbeard()
-                    task.wait(1) -- Evita lag/spam no loop de checagem
-                end
-            end)
-        end
-    end
-})
-
 repeat wait() until game:IsLoaded()
 
 local PlaceIds = {
-    [2753915549] = "sea 1",
-    [4442272183] = "sea 2",
-    [7449423635] = "sea 3 ",
+    [2753915549] = "World 1",
+    [4442272183] = "World 2",
+    [7449423635] = "World 3 ",
     [79091703265657] = "Sea 2",
     [996949360] = "Sea 2",
-    [100117331123089] = "sea 3",
-    [994732206] = "sea 3",
+    [100117331123089] = "World 3",
+    [994732206] = "World 3",
 }
 
 local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
@@ -2128,81 +2170,6 @@ Tabs.Others:AddDropdown("BaitAmountDropdown", {
     Default = "10",
     Callback = function(Value)
         _G.BaitAmount = tonumber(Value)
-    end
-})
-
-local DoughKingFarmAtivo = false
-
-local function atacarDoughKing()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-    local humanoid = character:WaitForChild("Humanoid", 5)
-
-    if not rootPart or not humanoid then return end
-
-    local doughKing = game:GetService("ReplicatedStorage"):FindFirstChild("Dough King")
-
-    if doughKing then
-        if _G.ChooseWP2 then
-            if type(_G.ChooseWP2) == "function" then
-                _G.ChooseWP2()
-            elseif type(_G.ChooseWP2) == "string" then
-                local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
-                if ferramenta then
-                    humanoid:EquipTool(ferramenta)
-                end
-            end
-        end
-
-        local alvoCFrame = doughKing:GetPivot()
-        local alvoPos = alvoCFrame.Position
-        local posicaoSegura = alvoPos + Vector3.new(0, 5, 0)
-        
-        local velocidade = _G.VelocidadeFarmBone or 100
-        local distancia = (rootPart.Position - posicaoSegura).Magnitude
-        local tempo = distancia / velocidade
-        
-        local tweenService = game:GetService("TweenService")
-        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoSegura, alvoPos)})
-        
-        tween:Play()
-        
-        if distancia > 15 then
-            tween.Completed:Wait()
-        else
-            rootPart.CFrame = CFrame.new(posicaoSegura, alvoPos)
-        end
-        
-        repeat
-            task.wait()
-            pcall(function()
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and doughKing:GetPivot() then
-                    player.Character.HumanoidRootPart.CFrame = doughKing:GetPivot() * CFrame.new(0, 5, 0)
-                end
-                Attack.Kill2(doughKing, DoughKingFarmAtivo)
-            end)
-        until not DoughKingFarmAtivo or not doughKing.Parent or (doughKing:FindFirstChild("Humanoid") and doughKing.Humanoid.Health <= 0)
-    else
-        task.wait(0.5)
-    end
-end
-
-Tabs.Stack:AddToggle("KillDoughKing", {
-    Title = "Kill Dough King",
-    Default = false,
-    Callback = function(Value)
-        DoughKingFarmAtivo = Value
-
-        if DoughKingFarmAtivo then
-            task.spawn(function()
-                while DoughKingFarmAtivo do
-                    pcall(atacarDoughKing)
-                    task.wait(0.1)
-                end
-            end)
-        end
     end
 })
 
@@ -2290,21 +2257,6 @@ local function voarAte(hrp, posicaoAlvo)
     tween.Completed:Wait()
 end
 
-local function equiparArma()
-    if _G.ChooseWP2 then
-        if type(_G.ChooseWP2) == "function" then
-            _G.ChooseWP2()
-        elseif type(_G.ChooseWP2) == "string" then
-            local char = LocalPlayer.Character
-            local humanoid = char and char:FindFirstChild("Humanoid")
-            local ferramenta = LocalPlayer.Backpack:FindFirstChild(_G.ChooseWP2)
-            if ferramenta and humanoid then
-                humanoid:EquipTool(ferramenta)
-            end
-        end
-    end
-end
-
 Tabs.Main:AddToggle("Test", {
     Title = "Farm Bone",
     Default = false,
@@ -2322,15 +2274,8 @@ Tabs.Main:AddToggle("Test", {
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
 
-                -- ====================================================================
-                -- GARANTE CHEGADA ANTES DE QUALQUER OUTRA AÇÃO
-                -- ====================================================================
                 voarAte(hrp, CFrameEspera.Position)
-                
-                -- Pequena pausa de segurança pós-pouso
-                task.wait(0.5)
 
-                -- Só entra no loop de buscar e farmar os mobs DEPOIS que chegou no CFrameEspera
                 while _G.Test do
                     pcall(function()
                         character = LocalPlayer.Character
@@ -2340,10 +2285,6 @@ Tabs.Main:AddToggle("Test", {
                         local lista = getNPCs()
 
                         if #lista == 0 then
-                            -- Se não houver mobs, volta para o CFrameEspera aguardar
-                            if (hrp.Position - CFrameEspera.Position).Magnitude > 20 then
-                                voarAte(hrp, CFrameEspera.Position)
-                            end
                             task.wait(0.5)
                             return
                         end
@@ -2355,104 +2296,19 @@ Tabs.Main:AddToggle("Test", {
                             local mobHumanoid = inimigo:FindFirstChildOfClass("Humanoid")
 
                             if mobHrp and mobHumanoid and mobHumanoid.Health > 0 then
-                                equiparArma()
-                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 10, 0))
+                                _G.ChooseWP2()
+                                voarAte(hrp, mobHrp.Position + Vector3.new(0, 3, 0))
 
                                 while _G.Test and inimigo.Parent and mobHumanoid and mobHumanoid.Health > 0 do
                                     character = LocalPlayer.Character
                                     hrp = character and character:FindFirstChild("HumanoidRootPart")
                                     if not hrp then break end
-                                    
-                                    equiparArma()
-                                    -- Mantém o CFrame cravado em cima do mob farmando rapidamente
-                                    hrp.CFrame = mobHrp.CFrame * CFrame.new(0, 10, 0)
-                                    task.wait()
+                                    _G.ChooseWP2()
+                                    voarAte(hrp, mobHrp.Position + Vector3.new(0, 10, 0))
                                 end
                             end
                         end
                     end)
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end
-})
-
--- Variável de controle do loop do Darkbeard
-local DarkbeardFarmAtivo = false
-
--- ====================================================================
--- FUNÇÃO PRINCIPAL: VOAR E MATAR O DARKBEARD
--- ====================================================================
-local function atacarDarkbeard()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-    local humanoid = character:WaitForChild("Humanoid", 5)
-
-    if not rootPart or not humanoid then return end
-
-    -- 1. Verifica se o Darkbeard existe dentro de workspace.Enemies
-    local enemiesFolder = workspace:FindFirstChild("Enemies")
-    local darkbeard = enemiesFolder and enemiesFolder:FindFirstChild("Darkbeard")
-
-    if darkbeard and darkbeard:FindFirstChild("HumanoidRootPart") and darkbeard:FindFirstChild("Humanoid") and darkbeard.Humanoid.Health > 0 then
-        
-        -- 2. Lógica para Equipar a Arma do _G.ChooseWP2
-        if _G.ChooseWP2 then
-            if type(_G.ChooseWP2) == "function" then
-                _G.ChooseWP2() -- Se for uma função de equipar, executa ela
-            elseif type(_G.ChooseWP2) == "string" then
-                -- Se for o nome da arma, procura na mochila e equipa
-                local ferramenta = player.Backpack:FindFirstChild(_G.ChooseWP2)
-                if ferramenta then
-                    humanoid:EquipTool(ferramenta)
-                end
-            end
-        end
-
-        -- 3. Configura o Voo (Tween) até a posição do Darkbeard
-        local alvoPos = darkbeard.HumanoidRootPart.Position
-        -- Mantém você um pouco acima dele (ex: 5 studs) para evitar cair do mapa ou errar os ataques
-        local posicaoSegura = alvoPos + Vector3.new(0, 5, 0) 
-        
-        local velocidade = _G.VelocidadeFarmBone or 100
-        local distancia = (rootPart.Position - posicaoSegura).Magnitude
-        local tempo = distancia / velocidade
-        
-        local tweenService = game:GetService("TweenService")
-        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = CFrame.new(posicaoSegura, alvoPos)})
-        
-        tween:Play()
-        
-        -- Se você já estiver muito perto, o tween acaba rápido; caso contrário, espera chegar
-        if distancia > 15 then
-            tween.Completed:Wait()
-        else
-            -- Se já estiver colado nele, só atualiza a posição instantaneamente para travar o farm nele
-            rootPart.CFrame = CFrame.new(posicaoSegura, alvoPos)
-        end
-    else
-        -- Se o Darkbeard não estiver no servidor ou já morreu
-        task.wait(0.5)
-    end
-end
-
--- ====================================================================
--- ADICIONANDO O TOGGLE NA SUA TAB DA FLUENT GUI (Tabs.StackFarm)
--- ====================================================================
-Tabs.Stack:AddToggle("KillDarkbeard", {
-    Title = "Kill Darkbeard",
-    Default = false,
-    Callback = function(Value)
-        DarkbeardFarmAtivo = Value
-
-        if DarkbeardFarmAtivo then
-            task.spawn(function()
-                while DarkbeardFarmAtivo do
-                    pcall(atacarDarkbeard) -- pcall evita que o script quebre caso você morra durante o farm
-                    task.wait(0.1) -- Loop rápido para grudar no NPC em movimento
                 end
             end)
         end
@@ -2524,110 +2380,86 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
     end
 })
 
-local CursedCaptainFarmAtivo = false
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-local function encontrarCursedCaptain()
-    -- Procura o NPC no workspace (não no ReplicatedStorage)
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") and v.Name == "Cursed Captain" then
-            return v
-        end
-    end
-    return nil
+local CaptainTween = nil
+
+-- FUNÇÃO TWEEN COM A SUA VELOCIDADE GLOBAL
+local function voarAteCapitao(posicaoAlvo)
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local distancia = (posicaoAlvo.Position - hrp.Position).Magnitude
+    local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 85
+    local tempo = distancia / velocidade
+
+    if CaptainTween then CaptainTween:Cancel() end
+
+    local info = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
+    CaptainTween = TweenService:Create(hrp, info, {CFrame = posicaoAlvo})
+    CaptainTween:Play()
+    
+    CaptainTween.Completed:Wait()
 end
 
-local function iniciarVooCursedCaptain()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-
-    if not rootPart then return end
-
-    -- ✅ SÓ CONTINUA SE O NPC ESTIVER NO MAPA
-    local cursedCaptainNPC = encontrarCursedCaptain()
-    if not cursedCaptainNPC then
-        warn("[CoelhoHub] Cursed Captain não está no mapa, aguardando...")
-        return
-    end
-
-    local tweenService = game:GetService("TweenService")
-    local velocidade = _G.VelocidadeFarmBone or 100
-
-    -- ✅ 1. VOA ATÉ A ENTRADA DO GHOSTSHIP
-    local ghostShipCFrame = CFrame.new(
-        -6496.89795, 89.0350037, -116.509003,
-        0.819155693, 0, -0.573571265,
-        0, -1.00000024, 0,
-        -0.573571265, 0, -0.819156051
-    )
-
-    local dist1 = (rootPart.Position - ghostShipCFrame.Position).Magnitude
-    local tween1 = tweenService:Create(
-        rootPart,
-        TweenInfo.new(dist1 / velocidade, Enum.EasingStyle.Linear),
-        {CFrame = ghostShipCFrame}
-    )
-    tween1:Play()
-    tween1.Completed:Wait()
-    task.wait(0.3)
-
-    if not CursedCaptainFarmAtivo then return end
-
-    -- ✅ 2. VERIFICA DE NOVO SE O NPC AINDA EXISTE ANTES DE VOAR PRA ELE
-    cursedCaptainNPC = encontrarCursedCaptain()
-    if not cursedCaptainNPC then
-        warn("[CoelhoHub] Cursed Captain sumiu antes de chegar!")
-        return
-    end
-
-    local alvoCFrame = cursedCaptainNPC:GetPivot()
-    local dist2 = (rootPart.Position - alvoCFrame.Position).Magnitude
-    local tween2 = tweenService:Create(
-        rootPart,
-        TweenInfo.new(dist2 / velocidade, Enum.EasingStyle.Linear),
-        {CFrame = alvoCFrame}
-    )
-    tween2:Play()
-    tween2.Completed:Wait()
-    task.wait(0.2)
-
-    if not CursedCaptainFarmAtivo then return end
-
-    -- ✅ 3. EQUIPA ARMA
-    if _G.ChooseWP2 then
-        if type(_G.ChooseWP2) == "function" then
-            _G.ChooseWP2()
-        else
-            pcall(function()
-                player.Character.Humanoid:EquipTool(player.Backpack[_G.ChooseWP2])
-            end)
-        end
-    end
-end
-
-Tabs.Stack:AddToggle("KillCursedCaptain", {
-    Title = "Kill Cursed Captain",
+-- TOGGLE NA TAB MAIN
+Tabs.Stack:AddToggle("AutoCursedCaptain", {
+    Title = "kill Cursed Captain",
     Default = false,
     Callback = function(Value)
-        CursedCaptainFarmAtivo = Value
+        _G.AutoCursedCaptain = Value
 
-        if CursedCaptainFarmAtivo then
+        if Value then
             task.spawn(function()
-                while CursedCaptainFarmAtivo do
-                    local ok, err = pcall(iniciarVooCursedCaptain)
-                    if not ok then
-                        warn("[CoelhoHub] Erro: " .. tostring(err))
-                    end
-                    task.wait(1)
+                while _G.AutoCursedCaptain do
+                    pcall(function()
+                        -- Verifica estritamente se a pasta e o NPC estão no mapa
+                        local enemies = workspace:FindFirstChild("Enemies")
+                        local boss = enemies and enemies:FindFirstChild("Cursed Captain")
+
+                        -- SÓ FAZ SE O NPC ESTIVER NO MAPA E VIVO
+                        if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                            
+                            -- 1. Executa a sua função de equipar arma
+                            if _G.ChooseWP2 then 
+                                _G.ChooseWP2() 
+                            end
+
+                            -- 2. Voa até o Boss com controle de velocidade (3 studs acima)
+                            local posicaoAlvo = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+                            voarAteCapitao(posicaoAlvo)
+
+                            -- 3. Loop de ataque colado nele
+                            repeat
+                                if boss and boss:FindFirstChild("HumanoidRootPart") then
+                                    LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+                                end
+                                Attack.Kill(boss, _G.AutoCursedCaptain)
+                                task.wait()
+                            -- Se ele sumir da pasta enemies ou morrer, quebra o loop na hora
+                            until not _G.AutoCursedCaptain or not boss.Parent or boss.Humanoid.Health <= 0
+                        else
+                            -- Se não estiver no mapa, cancela o Tween para você não voar pro nada
+                            if CaptainTween then CaptainTween:Cancel() end
+                        end
+                    end)
+                    task.wait(0.2)
                 end
+
+                if CaptainTween then CaptainTween:Cancel() end
             end)
+        else
+            if CaptainTween then CaptainTween:Cancel() end
         end
     end
 })
 
 local BossGhoulStatus = Tabs.Status:AddParagraph({ 
     Title = "Boss Ghoul Status:", 
-    Content = "" 
+    Content = "🔴" 
 })
 
 -- Loop em segundo plano para atualizar o status sem lagar o jogo
@@ -2698,13 +2530,13 @@ Tabs.PvpTab:AddToggle("FollowPlayerToggle", {
     Default = false,
     Callback = function(Value)
         _G.AutoKillPlayer = Value
-
+        
         if Value then
             task.spawn(function()
                 -- O loop principal SÓ PARA se a toggle for desligada
                 while _G.AutoKillPlayer do
                     local targetPlayer = selectedPlayer and game.Players:FindFirstChild(selectedPlayer)
-
+                    
                     -- VERIFICAÇÃO: Se o jogador saiu do server, desliga a toggle e para o farm
                     if not targetPlayer then
                         warn("O jogador selecionado saiu do servidor!")
@@ -2712,44 +2544,44 @@ Tabs.PvpTab:AddToggle("FollowPlayerToggle", {
                         -- Aqui você pode atualizar a sua UI para falso se a sua biblioteca permitir (ex: FollowPlayerToggle:Set(false))
                         break
                     end
-
+                    
                     pcall(function()
                         local targetChar = targetPlayer.Character
                         local targetHrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
                         local targetHumanoid = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
-
+                        
                         local myChar = game.Players.LocalPlayer.Character
                         local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
                         local myHumanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
-
+                        
                         -- Verifica se ambos estão vivos e com os corpos carregados
                         if targetHrp and targetHumanoid and myHrp and myHumanoid and myHumanoid.Health > 0 then
-
+                            
                             -- Executa a SUA função de equipar arma
                             if type(_G.ChooseWP2) == "function" then
                                 _G.ChooseWP2()
                             end
-
+                            
                             -- Calcula o trajeto com base no seu Slider de velocidade
                             local distancia = (myHrp.Position - targetHrp.Position).Magnitude
                             local velocidade = (_G.VelocidadeFarmBone and _G.VelocidadeFarmBone > 0) and _G.VelocidadeFarmBone or 350
                             local duracao = distancia / velocidade
-
+                            
                             local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
                             local tween = game:GetService("TweenService"):Create(myHrp, tweenInfo, {CFrame = targetHrp.CFrame})
-
+                            
                             tween:Play()
-
+                            
                             -- ESPERA CHEGAR: Espera o voo terminar ou o alvo morrer antes de recalcular
                             -- Isso evita travamentos e faz o voo ser 100% fluido
                             while tween.PlaybackState == Enum.PlaybackState.Playing and _G.AutoKillPlayer and targetHumanoid.Health > 0 and targetPlayer.Parent == game.Players do
                                 task.wait(0.1)
                             end
-
+                            
                             tween:Cancel() -- Cancela o tween antigo para iniciar o próximo limpo
                         end
                     end)
-
+                    
                     task.wait(0.2) -- Pequena pausa de segurança antes de checar o alvo novamente
                 end
             end)
@@ -2761,3 +2593,59 @@ Tabs.Races:Section({
 	Title = "V2",
 	TextXAlignment = "Left"
 });
+
+Tabs.PvpTab:Toggle("AutoActivatePvP",{
+	Title = "Auto Activate PvP",
+	Desc = "",
+	Value = false,
+	Callback = function(v)
+		if v then
+			spawn(function()
+				while v do
+					pcall(function()
+						(game:GetService("ReplicatedStorage")).Remotes.CommF_:InvokeServer("ActivatePvp", true);
+					end);
+					task.wait(5);
+				end;
+			end);
+		end;
+	end
+});
+
+Tabs.PvpTab:AddToggle("AutoActivatePvP",{
+	Title = "Auto Activate PvP",
+	Desc = "",
+	Value = false,
+	Callback = function(v)
+		if v then
+			spawn(function()
+				while v do
+					pcall(function()
+						(game:GetService("ReplicatedStorage")).Remotes.CommF_:InvokeServer("ActivatePvp", true);
+					end);
+					task.wait(5);
+				end;
+			end);
+		end;
+	end
+});                           else
+                                warn("VehicleSeat nao encontrado no barco!")
+                                task.wait(0.5)
+                            end
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+                
+                -- Limpeza das forças físicas ao desligar a Toggle
+                pcall(function()
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    if hrp and hrp:FindFirstChild("AntiCheatFlyForce") then
+                        hrp.AntiCheatFlyForce:Destroy()
+                    end
+                end)
+            end)
+        end
+    end
+})
