@@ -2546,9 +2546,7 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
     end
 })
 
--- Defina aqui as coordenadas exatas do CFrame do Summoner
-local SummonerCFrame = CFrame.new(-11475, 520, -1125) -- <- MUDE ISSO PARA O SEU CFRAME REAL
-
+-- Criando o Toggle dentro da sua Tabs.Stack
 Tabs.Stack:AddToggle("HauntedCastleSummon", {
     Title = "Spawn Soul Reaper",
     Default = false,
@@ -2564,9 +2562,9 @@ Tabs.Stack:AddToggle("HauntedCastleSummon", {
                     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
                     
                     if humanoidRootPart then
-                        -- 1. Teleporta o jogador diretamente para o CFrame definido
-                        humanoidRootPart.CFrame = SummonerCFrame
-                        task.wait(0.3) -- Pequena pausa para o teleporte estabilizar
+                        -- 1. Teleporta diretamente para as coordenadas de CFrame fornecidas
+                        humanoidRootPart.CFrame = CFrame.new(-8932.86133, 142.357468, 6063.31006, 0, 0, 1, 0, 1, -0, -1, 0, 0)
+                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
                         
                         -- 2. Procura e equipa a Hallow Essence
                         local backpack = player:FindFirstChild("Backpack")
@@ -2577,7 +2575,7 @@ Tabs.Stack:AddToggle("HauntedCastleSummon", {
                         end
                     end
                 end)
-                task.wait(0.5) -- Intervalo reduzido para checagem mais rápida
+                task.wait(1) -- Intervalo do loop (evita lag e crashes)
             end
         end)
     end
