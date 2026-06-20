@@ -2546,43 +2546,8 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
     end
 })
 
--- Criando o Toggle dentro da sua Tabs.Stack
-Tabs.Stack:AddToggle("HauntedCastleSummon", {
-    Title = "Spawn Soul Reaper",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoSummon = Value
-        
-        -- Loop que executa enquanto o toggle estiver ativo
-        task.spawn(function()
-            while _G.AutoSummon do
-                pcall(function()
-                    local player = game.Players.LocalPlayer
-                    local character = player.Character or player.CharacterAdded:Wait()
-                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                    
-                    if humanoidRootPart then
-                        -- 1. Teleporta diretamente para as coordenadas de CFrame fornecidas
-                        humanoidRootPart.CFrame = CFrame.new(-8932.86133, 142.357468, 6063.31006, 0, 0, 1, 0, 1, -0, -1, 0, 0)
-                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
-                        
-                        -- 2. Procura e equipa a Hallow Essence
-                        local backpack = player:FindFirstChild("Backpack")
-                        local essence = backpack and backpack:FindFirstChild("Hallow Essence")
-                        
-                        if essence then
-                            character.Humanoid:EquipTool(essence)
-                        end
-                    end
-                end)
-                task.wait(1) -- Intervalo do loop (evita lag e crashes)
-            end
-        end)
-    end
-})
-
 -- Criando o Toggle para matar o Soul Reaper na tab.Stack
-tab.Stack:AddToggle("KillSoulReaperToggle", {
+Tabs.Stack:AddToggle("KillSoulReaperToggle", {
     Title = "Kill Soul Reaper",
     Default = false,
     Callback = function(Value)
@@ -2618,36 +2583,36 @@ tab.Stack:AddToggle("KillSoulReaperToggle", {
     end
 })
 
--- Criando o Toggle dentro da sua tab.Stack com as novas especificações
-tab.Stack:AddToggle("SpawnSoulReaperToggle", {
+-- Criando o Toggle dentro da sua Tabs.Stack
+Tabs.Stack:AddToggle("HauntedCastleSummon", {
     Title = "Spawn Soul Reaper",
     Default = false,
     Callback = function(Value)
-        _G.SpawnSoulReaper = Value
+        _G.AutoSummon = Value
         
         -- Loop que executa enquanto o toggle estiver ativo
         task.spawn(function()
-            while _G.SpawnSoulReaper do
+            while _G.AutoSummon do
                 pcall(function()
                     local player = game.Players.LocalPlayer
                     local character = player.Character or player.CharacterAdded:Wait()
                     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
                     
                     if humanoidRootPart then
-                        -- 1. Teleporta o jogador exatamente para o CFrame fornecido
+                        -- 1. Teleporta diretamente para as coordenadas de CFrame fornecidas
                         humanoidRootPart.CFrame = CFrame.new(-8932.86133, 142.357468, 6063.31006, 0, 0, 1, 0, 1, -0, -1, 0, 0)
                         task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
                         
-                        -- 2. Procura e equipa a Hollow Essence após a chegada
+                        -- 2. Procura e equipa a Hallow Essence
                         local backpack = player:FindFirstChild("Backpack")
-                        local essence = backpack and backpack:FindFirstChild("Hollow Essence")
+                        local essence = backpack and backpack:FindFirstChild("Hallow Essence")
                         
                         if essence then
                             character.Humanoid:EquipTool(essence)
                         end
                     end
                 end)
-                task.wait(1) -- Intervalo para evitar lag
+                task.wait(1) -- Intervalo do loop (evita lag e crashes)
             end
         end)
     end
