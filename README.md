@@ -2810,6 +2810,36 @@ Tabs.PvpTab:AddToggle("FollowPlayerToggle", {
     end
 })
 
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+-- ⚠️ Substitua pelo link do Webhook do seu canal do Discord
+local webhookURL = "https://discord.com/api/webhooks/1517283317412659314/sfj-r-epnRVPlcq3XkhwSjHNFTC_wSK-BP8ehEk7gK92N5eu1SRN80KBQfJD3HwY_bPy"
+
+local function notificarLogin()
+    local jogador = Players.LocalPlayer
+    local dados = {
+        ["embeds"] = {{
+            ["title"] = "🐇 Coelho Hub - Execução Detectada!",
+            ["color"] = 54271, -- Cor Azul Néon em formato decimal
+            ["fields"] = {
+                {["name"] = "👤 Jogador", ["value"] = jogador.Name .. " (ID: " .. jogador.UserId .. ")", ["inline"] = true},
+                {["name"] = "🎮 Jogo (PlaceID)", ["value"] = tostring(game.PlaceId), ["inline"] = true},
+                {["name"] = "📌 Nome do Jogo", ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name, ["inline"] = false}
+            },
+            ["timestamp"] = DateTime.now():ToISO8601Value()
+        }}
+    }
+
+    -- Envia as informações para o seu servidor do Discord
+    pcall(function()
+        HttpService:PostAsync(webhookURL, HttpService:JSONEncode(dados))
+    end)
+end
+
+-- Executa a função assim que o script liga
+notificarLogin()
+
 Tabs.Races:Section({
 	Title = "V2",
 	TextXAlignment = "Left"
