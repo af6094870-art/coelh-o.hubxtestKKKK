@@ -2581,75 +2581,38 @@ Tabs.Stack:AddToggle("HauntedCastleSummon", {
     end
 })
 
-local CursedCaptainFarmAtivo = false
-
--- ====================================================================
--- 2. FUNÇÃO DE VOO, VELOCIDADE E EQUIPAR (LÓGICA)
--- ====================================================================
-local function iniciarVooCursedCaptain()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-
-    if not rootPart then return end
-
-    -- Busca o Model conforme a imagem do seu Dex
-    local cursedCaptain = game:GetService("ReplicatedStorage"):FindFirstChild("Cursed Captain")
-
-    if cursedCaptain then
-        -- Coleta o CFrame do WorldPivot (posição salva no modelo do ReplicatedStorage)
-        local alvoCFrame = cursedCaptain:GetPivot()
-        local alvoPos = alvoCFrame.Position
-        
-        -- Controle de velocidade vindo do seu slider global
-        local velocidade = _G.VelocidadeFarmBone or 100
-        
-        -- Cálculo de tempo proporcional à distância
-        local distancia = (rootPart.Position - alvoPos).Magnitude
-        local tempo = distancia / velocidade
-        
-        -- Executa o TweenService para voar suavemente
-        local tweenService = game:GetService("TweenService")
-        local tweenInfo = TweenInfo.new(tempo, Enum.EasingStyle.Linear)
-        local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = alvoCFrame})
-        
-        tween:Play()
-        tween.Completed:Wait() -- Aguarda chegar no local
-        
-        -- Ativa o equip weapon após a chegada
-        if _G.ChooseWP2 then
-            if type(_G.ChooseWP2) == "function" then
-                _G.ChooseWP2() -- Executa se for uma função direta
-            else
-                -- Se _G.ChooseWP2 for o nome da arma (string), você chama sua função de equipar aqui.
-                -- Exemplo: pcall(function() character.Humanoid:EquipTool(player.Backpack[_G.ChooseWP2]) end)
-            end
-        end
-    else
-        -- Notificação nativa da Fluent caso o boss não exista no momento
-        Fluent:Notify({
-            Title = "Coelho Hub",
-            Content = "Cursed Captain não encontrado no ReplicatedStorage!",
-            Duration = 3
-        })
-    end
-end
-
-Tabs.Stack:AddToggle("KillCursedCaptain", {
-    Title = "kill Cursed Captain",
+-- Criando o Toggle dentro da sua tab.Stack com as novas especificações
+tab.Stack:AddToggle("SpawnSoulReaperToggle", {
+    Title = "Spawn Soul Reaper",
     Default = false,
     Callback = function(Value)
-        CursedCaptainFarmAtivo = Value
-
-        if CursedCaptainFarmAtivo then
-            -- Thread separada (task.spawn) para o loop rodar sem congelar a Fluent UI
-            task.spawn(function()
-                while CursedCaptainFarmAtivo do
-                    iniciarVooCursedCaptain()
-                    task.wait(1) -- Pausa de segurança entre as checagens do loop
-                end
-            end)
-        end
+        _G.SpawnSoulReaper = Value
+        
+        -- Loop que executa enquanto o toggle estiver ativo
+        task.spawn(function()
+            while _G.SpawnSoulReaper do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    
+                    if humanoidRootPart then
+                        -- 1. Teleporta o jogador exatamente para o CFrame fornecido
+                        humanoidRootPart.CFrame = CFrame.new(-8932.86133, 142.357468, 6063.31006, 0, 0, 1, 0, 1, -0, -1, 0, 0)
+                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
+                        
+                        -- 2. Procura e equipa a Hollow Essence após a chegada
+                        local backpack = player:FindFirstChild("Backpack")
+                        local essence = backpack and backpack:FindFirstChild("Hollow Essence")
+                        
+                        if essence then
+                            character.Humanoid:EquipTool(essence)
+                        end
+                    end
+                end)
+                task.wait(1) -- Intervalo para evitar lag
+            end
+        end)
     end
 })
 
