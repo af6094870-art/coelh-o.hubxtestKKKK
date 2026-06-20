@@ -2616,6 +2616,43 @@ tab.Stack:AddToggle("SpawnSoulReaperToggle", {
     end
 })
 
+-- Criando o Toggle para matar o Soul Reaper na tab.Stack
+Tabs.Stack:AddToggle("KillSoulReaperToggle", {
+    Title = "Kill Soul Reaper",
+    Default = false,
+    Callback = function(Value)
+        _G.KillSoulReaper = Value
+        
+        task.spawn(function()
+            while _G.KillSoulReaper do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    
+                    -- 1. Verifica se o Soul Reaper spawnou e está vivo
+                    local reaper = workspace.Enemies:FindFirstChild("Soul Reaper")
+                    local reaperHumanoid = reaper and reaper:FindFirstChild("Humanoid")
+                    local reaperRoot = reaper and reaper:FindFirstChild("HumanoidRootPart")
+                    
+                    if reaper and reaperRoot and reaperHumanoid and reaperHumanoid.Health > 0 and humanoidRootPart then
+                        -- 2. Teleporta o jogador ligeiramente acima do boss (evita tomar muito dano)
+                        humanoidRootPart.CFrame = reaperRoot.CFrame * CFrame.new(0, 5, 0)
+                        
+                        -- 3. Ativa o clique/ataque com a arma que estiver na mão
+                        local tool = character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                        end
+                    end
+                end)
+                -- Delay menor para o combate fluir rápido e o teleporte grudar no boss
+                task.wait(0.1) 
+            end
+        end)
+    end
+})
+
 local BossGhoulStatus = Tabs.Status:AddParagraph({ 
     Title = "Boss Ghoul Status:", 
     Content = "" 
