@@ -810,111 +810,6 @@ Tabs.Config:AddToggle("AutoStatToggle", {
     end
 })
 
-
-repeat task.wait() until game:IsLoaded()
-
--- Identificação do Mundo
-local PlaceIds = {
-    [2753915549] = "Sea 1",
-    [4442272183] = "Sea 2",
-    [7449423635] = "Sea 3",
-    [79091703265657] = "Sea 2",
-    [996949360] = "Sea 2",
-    [100117331123089] = "World 3",
-}
-
-local CurrentWorld = PlaceIds[game.PlaceId] or "Desconhecido"
-
--- Variáveis de Controle
-local BossSelecionado = ""
-local KillBossAtivo = false
-
--- Configuração dos Bosses por Sea
-local BossesPorMundo = {
-    ["Sea 1"] = {
-        "Em breve...",
-    },
-    ["Sea 2"] = {
-        "Orbitus",
-        "Jeremy",
-        "Don Swan",
-        "Diamond",
-        "Smoke Admiral"
-    },
-    ["Sea 3"] = {
-        "Em breve...",
-    }
-}
-
--- Pega a lista correta dependendo do Sea atual
-local ListaBosses Atuais = BossesPorMundo[CurrentWorld] or {"Nenhum mundo detectado"}
-
--- ==============================================================
--- 1. CRIAÇÃO DO DROPDOWN (FLUENT)
--- ==============================================================
-local DropdownBoss = Tabs.Stack:AddDropdown("SelectBossDropdown", {
-    Title = "Select Boss",
-    Values = ListaBossesAtuais,
-    Multi = false,
-    Default = 1,
-    Callback = function(Value)
-        BossSelecionado = Value
-    end
-})
-
--- ==============================================================
--- FUNÇÃO AUXILIAR: ENCONTRAR O BOSS NO MAPA
--- ==============================================================
-local function encontrarBoss(nome)
-    if not nome or nome == "" or nome == "Em breve..." then return nil end
-    
-    -- Tratamento especial para o Orbitus que você mencionou estar no ReplicatedStorage/Workspace
-    if nome == "Orbitus" then
-        -- Primeiro checa se ele já foi spawnado no workspace
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Model") and v.Name == "Orbitus" then
-                return v
-            end
-        end
-        return nil
-    end
-
-    -- Busca padrão dentro da pasta Enemies para os outros bosses do Sea 2
-    local enemiesFolder = workspace:FindFirstChild("Enemies")
-    if enemiesFolder then
-        local boss = enemiesFolder:FindFirstChild(nome)
-        if boss and boss:IsA("Model") then
-            return boss
-        end
-    end
-
-    -- Busca genérica caso o jogo spawne o boss fora da pasta Enemies por algum bug
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") and v.Name == nome then
-            return v
-        end
-    end
-
-    return nil
-end
-
--- ==============================================================
--- FUNÇÃO AUXILIAR: EQUIPAR ARMA
--- ==============================================================
-local function equiparArma()
-    local player = game.Players.LocalPlayer
-    if _G.ChooseWP2 and player.Character and player:FindFirstChild("Backpack") then
-        if type(_G.ChooseWP2) == "function" then
-            _G.ChooseWP2()
-        else
-            local weapon = player.Backpack:FindFirstChild(_G.ChooseWP2)
-            if weapon then
-                player.Character.Humanoid:EquipTool(weapon)
-            end
-        end
-    end
-end
-
 Tabs.Teleport:AddButton({
     Title = "Teleport to Sea 1",
     Callback = function()
@@ -1411,6 +1306,19 @@ task.spawn(function()
     end
 end)
 
+Tabs.Status:AddButton({
+    Title = "Hop Server",
+    Description = "Pula para outro servidor",
+    Callback = function()
+        pcall(function()
+            -- Fecha o popup de erro automaticamente
+            local function fecharErro(v)
+                if v.Name == "ErrorPrompt" then
+                    v:GetPropertyChangedSignal("Visible"):Connect(function()
+                        if v.Visible then v.Visible = false end
+                    end)
+                    if v.Visible then v.Visible = false end
+                end
 repeat task.wait() until game:IsLoaded()
 
 -- Identificação do Mundo
@@ -1488,6 +1396,8 @@ local function encontrarBoss(nome)
         end
     end
 
+            for _, v in pairs(game.CoreGui.RobloxPromptGui.promptOverlay:GetChildren()) do
+                fecharErro(v)
     -- Busca genérica caso o jogo spawne o boss fora da pasta Enemies por algum bug
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("Model") and v.Name == nome then
@@ -1511,6 +1421,17 @@ local function equiparArma()
             if weapon then
                 player.Character.Humanoid:EquipTool(weapon)
             end
+            game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(fecharErro)
+
+            -- Hop pelo ServerBrowser nativo do Blox Fruits
+            for pagina = 1, math.huge do
+                local servidores = game.ReplicatedStorage.__ServerBrowser:InvokeServer(pagina)
+                if not servidores then break end
+                for jobId, dados in pairs(servidores) do
+                    if jobId ~= game.JobId and dados["Count"] <= 10 then
+                        game.ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", jobId)
+                        return
+                    end
         end
     end
 end
@@ -1569,6 +1490,8 @@ Tabs.Main:AddToggle("KillBossSelected", {
                     
                     task.wait(1) -- Delay seguro entre checagens de rota
                 end
+            end
+        end)
             end)
         end
     end
