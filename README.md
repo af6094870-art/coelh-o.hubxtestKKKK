@@ -2581,43 +2581,8 @@ Tabs.Stack:AddToggle("HauntedCastleSummon", {
     end
 })
 
--- Criando o Toggle dentro da sua tab.Stack com as novas especificações
-tab.Stack:AddToggle("SpawnSoulReaperToggle", {
-    Title = "Spawn Soul Reaper",
-    Default = false,
-    Callback = function(Value)
-        _G.SpawnSoulReaper = Value
-        
-        -- Loop que executa enquanto o toggle estiver ativo
-        task.spawn(function()
-            while _G.SpawnSoulReaper do
-                pcall(function()
-                    local player = game.Players.LocalPlayer
-                    local character = player.Character or player.CharacterAdded:Wait()
-                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                    
-                    if humanoidRootPart then
-                        -- 1. Teleporta o jogador exatamente para o CFrame fornecido
-                        humanoidRootPart.CFrame = CFrame.new(-8932.86133, 142.357468, 6063.31006, 0, 0, 1, 0, 1, -0, -1, 0, 0)
-                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
-                        
-                        -- 2. Procura e equipa a Hollow Essence após a chegada
-                        local backpack = player:FindFirstChild("Backpack")
-                        local essence = backpack and backpack:FindFirstChild("Hollow Essence")
-                        
-                        if essence then
-                            character.Humanoid:EquipTool(essence)
-                        end
-                    end
-                end)
-                task.wait(1) -- Intervalo para evitar lag
-            end
-        end)
-    end
-})
-
 -- Criando o Toggle para matar o Soul Reaper na tab.Stack
-Tabs.Stack:AddToggle("KillSoulReaperToggle", {
+tab.Stack:AddToggle("KillSoulReaperToggle", {
     Title = "Kill Soul Reaper",
     Default = false,
     Callback = function(Value)
@@ -2648,6 +2613,41 @@ Tabs.Stack:AddToggle("KillSoulReaperToggle", {
                 end)
                 -- Delay menor para o combate fluir rápido e o teleporte grudar no boss
                 task.wait(0.1) 
+            end
+        end)
+    end
+})
+
+-- Criando o Toggle dentro da sua tab.Stack com as novas especificações
+tab.Stack:AddToggle("SpawnSoulReaperToggle", {
+    Title = "Spawn Soul Reaper",
+    Default = false,
+    Callback = function(Value)
+        _G.SpawnSoulReaper = Value
+        
+        -- Loop que executa enquanto o toggle estiver ativo
+        task.spawn(function()
+            while _G.SpawnSoulReaper do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    
+                    if humanoidRootPart then
+                        -- 1. Teleporta o jogador exatamente para o CFrame fornecido
+                        humanoidRootPart.CFrame = CFrame.new(-8932.86133, 142.357468, 6063.31006, 0, 0, 1, 0, 1, -0, -1, 0, 0)
+                        task.wait(0.5) -- Pequena pausa para o teleporte estabilizar
+                        
+                        -- 2. Procura e equipa a Hollow Essence após a chegada
+                        local backpack = player:FindFirstChild("Backpack")
+                        local essence = backpack and backpack:FindFirstChild("Hollow Essence")
+                        
+                        if essence then
+                            character.Humanoid:EquipTool(essence)
+                        end
+                    end
+                end)
+                task.wait(1) -- Intervalo para evitar lag
             end
         end)
     end
