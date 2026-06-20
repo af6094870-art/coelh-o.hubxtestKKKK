@@ -2600,6 +2600,86 @@ local function iniciarVooCursedCaptain()
     end
 end
 
+local HollowEssenceFarmAtivo = false
+
+local function iniciarVooHollowEssence()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+
+    if not rootPart then return end
+
+    -- ✅ VERIFICA SE O SUMMONER EXISTE NO MAPA
+    local mapFolder = workspace:FindFirstChild("Map")
+    if not mapFolder then return end
+
+    local hauntedCastle = mapFolder:FindFirstChild("Haunted Castle")
+    if not hauntedCastle then
+        warn("[CoelhoHub] Haunted Castle não encontrado!")
+        return
+    end
+
+    local summoner = hauntedCastle:FindFirstChild("Summoner")
+    if not summoner then
+        warn("[CoelhoHub] Summoner não encontrado no mapa!")
+        return
+    end
+
+    -- ✅ VOA ATÉ O SUMMONER
+    local tweenService = game:GetService("TweenService")
+    local velocidade = _G.VelocidadeFarmBone or 100
+
+    local alvoCFrame = summoner:GetPivot()
+    local distancia = (rootPart.Position - alvoCFrame.Position).Magnitude
+    local tempo = distancia / velocidade
+
+    local tween = tweenService:Create(
+        rootPart,
+        TweenInfo.new(tempo, Enum.EasingStyle.Linear),
+        {CFrame = alvoCFrame}
+    )
+    tween:Play()
+    tween.Completed:Wait()
+    task.wait(0.2)
+
+    if not HollowEssenceFarmAtivo then return end
+
+    -- ✅ EQUIPA A HOLLOW ESSENCE
+    pcall(function()
+        local backpack = player.Backpack
+        local char = player.Character
+
+        local tool = (backpack and backpack:FindFirstChild("Hollow Essence")) 
+                  or (char and char:FindFirstChild("Hollow Essence"))
+
+        if tool then
+            character.Humanoid:EquipTool(tool)
+        else
+            warn("[CoelhoHub] Hollow Essence não encontrada no Backpack!")
+        end
+    end)
+end
+
+Tabs.Stack:AddToggle("HollowEssenceFarm", {
+    Title = "Farm Hollow Essence",
+    Default = false,
+    Callback = function(Value)
+        HollowEssenceFarmAtivo = Value
+
+        if HollowEssenceFarmAtivo then
+            task.spawn(function()
+                while HollowEssenceFarmAtivo do
+                    local ok, err = pcall(iniciarVooHollowEssence)
+                    if not ok then
+                        warn("[CoelhoHub] Erro no Hollow Essence farm: " .. tostring(err))
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
 Tabs.Stack:AddToggle("KillCursedCaptain", {
     Title = "kill Cursed Captain",
     Default = false,
@@ -2754,83 +2834,3 @@ Tabs.Races:Section({
 	Title = "V2",
 	TextXAlignment = "Left"
 });
-
-local HollowEssenceFarmAtivo = false
-
-local function iniciarVooHollowEssence()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
-
-    if not rootPart then return end
-
-    -- ✅ VERIFICA SE O SUMMONER EXISTE NO MAPA
-    local mapFolder = workspace:FindFirstChild("Map")
-    if not mapFolder then return end
-
-    local hauntedCastle = mapFolder:FindFirstChild("Haunted Castle")
-    if not hauntedCastle then
-        warn("[CoelhoHub] Haunted Castle não encontrado!")
-        return
-    end
-
-    local summoner = hauntedCastle:FindFirstChild("Summoner")
-    if not summoner then
-        warn("[CoelhoHub] Summoner não encontrado no mapa!")
-        return
-    end
-
-    -- ✅ VOA ATÉ O SUMMONER
-    local tweenService = game:GetService("TweenService")
-    local velocidade = _G.VelocidadeFarmBone or 100
-
-    local alvoCFrame = summoner:GetPivot()
-    local distancia = (rootPart.Position - alvoCFrame.Position).Magnitude
-    local tempo = distancia / velocidade
-
-    local tween = tweenService:Create(
-        rootPart,
-        TweenInfo.new(tempo, Enum.EasingStyle.Linear),
-        {CFrame = alvoCFrame}
-    )
-    tween:Play()
-    tween.Completed:Wait()
-    task.wait(0.2)
-
-    if not HollowEssenceFarmAtivo then return end
-
-    -- ✅ EQUIPA A HOLLOW ESSENCE
-    pcall(function()
-        local backpack = player.Backpack
-        local char = player.Character
-
-        local tool = (backpack and backpack:FindFirstChild("Hollow Essence")) 
-                  or (char and char:FindFirstChild("Hollow Essence"))
-
-        if tool then
-            character.Humanoid:EquipTool(tool)
-        else
-            warn("[CoelhoHub] Hollow Essence não encontrada no Backpack!")
-        end
-    end)
-end
-
-Tabs.Stack:AddToggle("HollowEssenceFarm", {
-    Title = "spawn soul reaper",
-    Default = false,
-    Callback = function(Value)
-        HollowEssenceFarmAtivo = Value
-
-        if HollowEssenceFarmAtivo then
-            task.spawn(function()
-                while HollowEssenceFarmAtivo do
-                    local ok, err = pcall(iniciarVooHollowEssence)
-                    if not ok then
-                        warn("[CoelhoHub] Erro no Hollow Essence farm: " .. tostring(err))
-                    end
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
