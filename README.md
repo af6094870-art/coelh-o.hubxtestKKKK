@@ -2661,7 +2661,7 @@ local function iniciarVooHollowEssence()
 end
 
 Tabs.Stack:AddToggle("HollowEssenceFarm", {
-    Title = "Farm Hollow Essence",
+    Title = "spawn soul reaper",
     Default = false,
     Callback = function(Value)
         HollowEssenceFarmAtivo = Value
