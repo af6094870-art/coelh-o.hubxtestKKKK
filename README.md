@@ -1226,7 +1226,9 @@ Tabs.Config:AddSlider("SliderVelocidadeBone", {
     end
 })
 
+
 -- ==============================================================
+-- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4)
 -- TOGGLE + MOTOR DO AUTO ACTIVE RACE (V3/V4) COM NOTIFICAÇÕES
 -- ==============================================================
 
@@ -1240,6 +1242,18 @@ local ToggleRaceAbility = Tabs.Config:AddToggle("AutoRaceAbilityToggle", {
     end
 })
 
+        task.wait(0.8) 
+    else
+        -- Notificação caso você ligue o toggle mas não tenha o item no inventário
+        Fluent:Notify({
+            Title = "Coelho Hub",
+            Content = "Você não tem o Fist of Darkness no inventário!",
+            Duration = 3
+        })
+    end
+end
+
+-- 2. O Motor que roda em segundo plano (Sem travar o clique)
 -- 2. O Motor que roda em segundo plano com sistema de verificação
 task.spawn(function()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1283,6 +1297,8 @@ task.spawn(function()
                 CommE:FireServer("ActivateAbility")
                 ativouComSucesso = true
                 
+                -- LOOP DE ESPERA INTELIGENTE:
+                -- Em vez de dar um wait(30) seco, ele checa a cada 1 segundo se você desligou o botão
                 -- Notificação de Sucesso
                 Fluent:Notify({
                     Title = "Coelho Hub",
@@ -1298,6 +1314,7 @@ task.spawn(function()
                     task.wait(1)
                     tempoPassado = tempoPassado + 1
                 until not _G.RaceClickAutov3 or tempoPassado >= tempoEsperaMaximo
+            end)
             else
                 -- Delay curto caso dê algum erro genérico para não travar o jogo
                 task.wait(0.8)
@@ -1305,79 +1322,39 @@ task.spawn(function()
         end
     end
 end)
--- ==============================================================
--- FUNÇÃO AUXILIAR: EQUIPAR ARMA
--- ==============================================================
-local function equiparArma()
-    local player = game.Players.LocalPlayer
-    if _G.ChooseWP2 and player.Character and player:FindFirstChild("Backpack") then
-        if type(_G.ChooseWP2) == "function" then
-            _G.ChooseWP2()
-        else
-            local weapon = player.Backpack:FindFirstChild(_G.ChooseWP2)
-            if weapon then
-                player.Character.Humanoid:EquipTool(weapon)
-            end
-        end
-    end
-end
 
--- ==============================================================
--- 2. CRIAÇÃO DO TOGGLE "KILL BOSS SELECTED"
--- ==============================================================
-Tabs.Main:AddToggle("KillBossSelected", {
-    Title = "Kill Boss Selected",
-    Default = false,
-    Callback = function(Value)
-        KillBossAtivo = Value
-
-        if KillBossAtivo then
-            task.spawn(function()
-                local player = game.Players.LocalPlayer
-                local tweenService = game:GetService("TweenService")
-
-                while KillBossAtivo do
-                    pcall(function()
-                        local bossNPC = encontrarBoss(BossSelecionado)
-                        
-                        if bossNPC and bossNPC:FindFirstChild("HumanoidRootPart") and bossNPC:FindFirstChild("Humanoid") and bossNPC.Humanoid.Health > 0 then
-                            local character = player.Character
-                            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-                            
-                            if rootPart then
-                                -- 1. Equipar a arma configurada antes/durante o voo
-                                equiparArma()
-
-                                -- 2. Lógica do Tween com controle de velocidade global
-                                local targetPart = bossNPC.HumanoidRootPart
-                                local dist = (rootPart.Position - targetPart.Position).Magnitude
-                                local velocidade = _G.VelocidadeFarmBone or 100
-                                local duracao = dist / velocidade
-
-                                local tweenInfo = TweenInfo.new(duracao, Enum.EasingStyle.Linear)
-                                local tween = tweenService:Create(rootPart, tweenInfo, {CFrame = targetPart.CFrame})
-                                
-                                tween:Play()
-
-                                -- Aguarda o voo terminar ou o toggle ser desligado
-                                while tween.PlaybackState == Enum.PlaybackState.Playing and KillBossAtivo do
-                                    task.wait(0.1)
-                                end
-
-                                if not KillBossAtivo then
-                                    tween:Cancel()
-                                end
-                            end
-                        else
-                            -- Se o boss selecionado não estiver no mapa, manda um aviso no console e aguarda
-                            warn("[CoelhoHub] Aguardando spawn do boss: " .. tostring(BossSelecionado))
-                        end
+Tabs.Status:AddButton({
+    Title = "Hop Server",
+    Description = "Pula para outro servidor",
+    Callback = function()
+        pcall(function()
+            -- Fecha o popup de erro automaticamente
+            local function fecharErro(v)
+                if v.Name == "ErrorPrompt" then
+                    v:GetPropertyChangedSignal("Visible"):Connect(function()
+                        if v.Visible then v.Visible = false end
                     end)
-                    
-                    task.wait(1) -- Delay seguro entre checagens de rota
+                    if v.Visible then v.Visible = false end
                 end
-            end)
-        end
+            end
+
+            for _, v in pairs(game.CoreGui.RobloxPromptGui.promptOverlay:GetChildren()) do
+                fecharErro(v)
+            end
+            game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(fecharErro)
+
+            -- Hop pelo ServerBrowser nativo do Blox Fruits
+            for pagina = 1, math.huge do
+                local servidores = game.ReplicatedStorage.__ServerBrowser:InvokeServer(pagina)
+                if not servidores then break end
+                for jobId, dados in pairs(servidores) do
+                    if jobId ~= game.JobId and dados["Count"] <= 10 then
+                        game.ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", jobId)
+                        return
+                    end
+                end
+            end
+        end)
     end
 })
 
