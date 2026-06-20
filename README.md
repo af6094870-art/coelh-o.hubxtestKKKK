@@ -2584,6 +2584,8 @@ _G.TestVoarCakePrince = false
 local TweenService = game:GetService("TweenService")
 
 local CFrameInicio = CFrame.new(-2135.04028, 70.0246201, -12396.6025, 0.995649099, -1.74269381e-08, 0.0931816623, 2.13228315e-08, 1, -4.08140401e-08, -0.0931816623, 4.26233591e-08, 0.995649099)
+-- Nova coordenada adicionada abaixo:
+local CFrameEspera = CFrame.new(-9387.1064453125, 140.3748016357422, 5616.0419921875)
 
 local function voarAte(hrp, posicaoAlvo)
     local distancia = (hrp.Position - posicaoAlvo).Magnitude
@@ -2622,11 +2624,18 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
                         local bossHrp = boss:FindFirstChild("HumanoidRootPart")
                         local bossHumanoid = boss:FindFirstChildOfClass("Humanoid")
 
+                        -- Se o Boss existir e estiver vivo, inicia a rota
                         if bossHrp and bossHumanoid and bossHumanoid.Health > 0 then
-                            -- voa pro CFrame inicial e espera 5 segundos antes de ir matar
+                            
+                            -- 1. Primeiro voa para a nova coordenada informada
+                            voarAte(hrp, CFrameEspera.Position)
+                            task.wait(0.5) -- Pausa rápida de confirmação
+                            
+                            -- 2. Em seguida, voa pro CFrame inicial original e espera 5 segundos
                             voarAte(hrp, CFrameInicio.Position)
                             task.wait(5)
 
+                            -- 3. Loop de ataque colado no boss
                             while _G.TestVoarCakePrince and boss.Parent and bossHumanoid.Health > 0 do
                                 character = game.Players.LocalPlayer.Character
                                 hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -2634,6 +2643,7 @@ Tabs.Stack:AddToggle("TestVoarCakePrince", {
 
                                 _G.ChooseWP2()
                                 voarAte(hrp, bossHrp.Position + Vector3.new(0, 3, 0))
+                                task.wait(0.1) -- Evita sobrecarga no tween de ataque
                             end
                         end
                     end)
